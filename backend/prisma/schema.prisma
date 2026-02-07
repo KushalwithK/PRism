@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  FREE
+  PRO
+  MAX
+}
+
+model User {
+  id                String         @id @default(uuid())
+  email             String         @unique
+  passwordHash      String
+  name              String
+  plan              Plan           @default(FREE)
+  usageCount        Int            @default(0)
+  defaultTemplateId String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  defaultTemplate   Template?      @relation("UserDefaultTemplate", fields: [defaultTemplateId], references: [id], onDelete: SetNull)
+  templates         Template[]     @relation("UserTemplates")
+  generations       Generation[]
+  refreshTokens     RefreshToken[]
+
+  @@map("users")
+}
+
+model Template {
+  id           String       @id @default(uuid())
+  userId       String?
+  name         String
+  description  String       @default("")
+  body         String
+  isPredefined Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  user         User?        @relation("UserTemplates", fields: [userId], references: [id], onDelete: Cascade)
+  defaultFor   User[]       @relation("UserDefaultTemplate")
+  generations  Generation[]
+
+  @@map("templates")
+}
+
+model Generation {
+  id            String   @id @default(uuid())
+  userId        String
+  templateId    String?
+  platform      String
+  repoUrl       String
+  prTitle       String
+  prDescription String
+  diffSummary   String
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template      Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@map("generations")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}

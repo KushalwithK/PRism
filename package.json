@@ -1,0 +1,21 @@
+{
+  "name": "prism",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "backend",
+    "extension"
+  ],
+  "scripts": {
+    "backend:dev": "npm run dev --workspace=backend",
+    "backend:build": "npm run build --workspace=backend",
+    "backend:start": "npm run start --workspace=backend",
+    "extension:dev": "npm run dev --workspace=extension",
+    "extension:build": "npm run build --workspace=extension",
+    "db:migrate": "npm run db:migrate --workspace=backend",
+    "db:seed": "npm run db:seed --workspace=backend",
+    "db:studio": "npm run db:studio --workspace=backend",
+    "shared:build": "npm run build --workspace=@prism/shared"
+  }
+}
