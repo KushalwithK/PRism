@@ -58,6 +58,10 @@ Guidelines:
 - For bug-related placeholders: clearly distinguish symptoms from root cause
 - Keep bullet points concise (1-2 lines each) — avoid walls of text
 - Use professional, direct language — no filler phrases like "This PR aims to" or "In order to"
+- Keep each placeholder value to 3-8 bullet points maximum — be selective, not exhaustive
+- Total JSON response must be under 6000 tokens — prioritize brevity over completeness
+- Use short, dense sentences — every word should carry information
+- Never include full code snippets — reference file paths and function names with backticks instead
 ${additionalPrompt ? `\nAdditional instructions from the author:\n${additionalPrompt}\n` : ''}
 Code diff:
 \`\`\`

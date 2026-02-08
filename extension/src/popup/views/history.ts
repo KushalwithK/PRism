@@ -138,6 +138,13 @@ function showDetailModal(gen: Generation) {
           <span class="modal-meta-label">Repo</span>
           <span class="modal-meta-value" title="${escapeHtml(gen.repoUrl)}">${escapeHtml(truncatedUrl)}</span>
         </div>
+        ${gen.compareBranch && gen.baseBranch ? `
+          <div class="branch-flow">
+            <span class="branch-badge">${escapeHtml(gen.compareBranch)}</span>
+            <svg class="branch-arrow" width="20" height="12" viewBox="0 0 20 12"><path d="M0 6h16M12 1l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="branch-badge">${escapeHtml(gen.baseBranch)}</span>
+          </div>
+        ` : ''}
         ${gen.diffSummary ? `
           <div class="modal-section-label">Diff Summary</div>
           <div class="modal-description" style="max-height:100px;margin-bottom:var(--space-4);">${escapeHtml(gen.diffSummary)}</div>

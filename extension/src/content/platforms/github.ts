@@ -81,9 +81,28 @@ export class GitHubAdapter implements PlatformAdapter {
     const repoMatch = url.match(/github\.com\/([^/]+\/[^/]+)/);
     const repoUrl = repoMatch ? `https://github.com/${repoMatch[1]}` : url;
 
-    // Try to extract branches from the compare page
-    const headRef = document.querySelector('.head-ref')?.textContent?.trim() || '';
-    const baseRef = document.querySelector('.base-ref')?.textContent?.trim() || '';
+    // Try to extract branches from DOM elements first
+    let headRef = document.querySelector('.head-ref')?.textContent?.trim() || '';
+    let baseRef = document.querySelector('.base-ref')?.textContent?.trim() || '';
+
+    // Fallback: extract branches from URL (e.g. /compare/main...feat/login)
+    if (!headRef || !baseRef) {
+      const compareMatch = url.match(/\/compare\/(.+)/);
+      if (compareMatch) {
+        const range = decodeURIComponent(compareMatch[1]).split('?')[0];
+        const dotSplit = range.split('...');
+        if (dotSplit.length === 2) {
+          baseRef = baseRef || dotSplit[0];
+          headRef = headRef || dotSplit[1];
+        } else {
+          const doubleDotSplit = range.split('..');
+          if (doubleDotSplit.length === 2) {
+            baseRef = baseRef || doubleDotSplit[0];
+            headRef = headRef || doubleDotSplit[1];
+          }
+        }
+      }
+    }
 
     return {
       repoUrl,

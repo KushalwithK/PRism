@@ -48,7 +48,7 @@ async function handleMessage(message: ExtensionMessage): Promise<ExtensionRespon
     }
 
     case 'GENERATE': {
-      const payload = message.payload as { diff: string; platform: string; repoUrl: string; templateId?: string };
+      const payload = message.payload as { diff: string; platform: string; repoUrl: string; baseBranch?: string; compareBranch?: string; templateId?: string; additionalPrompt?: string };
       const data = await apiRequest('/api/generate', {
         method: 'POST',
         body: JSON.stringify(payload),
@@ -62,10 +62,13 @@ async function handleMessage(message: ExtensionMessage): Promise<ExtensionRespon
     }
 
     case 'GET_HISTORY': {
-      const params = message.payload as { page?: number; pageSize?: number } | undefined;
+      const params = message.payload as { page?: number; pageSize?: number; repoUrl?: string; baseBranch?: string; compareBranch?: string } | undefined;
       const query = new URLSearchParams();
       if (params?.page) query.set('page', String(params.page));
       if (params?.pageSize) query.set('pageSize', String(params.pageSize));
+      if (params?.repoUrl) query.set('repoUrl', params.repoUrl);
+      if (params?.baseBranch) query.set('baseBranch', params.baseBranch);
+      if (params?.compareBranch) query.set('compareBranch', params.compareBranch);
       const qs = query.toString();
       const data = await apiRequest(`/api/history${qs ? `?${qs}` : ''}`);
       return { success: true, data };

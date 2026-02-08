@@ -23,13 +23,15 @@ export default async function generateRoutes(fastify: FastifyInstance) {
           diff: { type: 'string', minLength: 1, maxLength: MAX_DIFF_LENGTH },
           platform: { type: 'string', enum: ['github', 'gitlab'] },
           repoUrl: { type: 'string' },
+          baseBranch: { type: 'string' },
+          compareBranch: { type: 'string' },
           templateId: { type: 'string' },
           additionalPrompt: { type: 'string', maxLength: 2000 },
         },
       },
     },
   }, async (request, reply) => {
-    const { diff, platform, repoUrl, templateId, additionalPrompt } = request.body;
+    const { diff, platform, repoUrl, baseBranch, compareBranch, templateId, additionalPrompt } = request.body;
 
     // 1. Resolve template
     let template;
@@ -83,9 +85,14 @@ export default async function generateRoutes(fastify: FastifyInstance) {
           templateId: template.id,
           platform,
           repoUrl,
+          baseBranch: baseBranch || null,
+          compareBranch: compareBranch || null,
           prTitle: title,
           prDescription: description,
           diffSummary,
+          promptTokens: aiResult.tokenUsage?.promptTokens ?? null,
+          completionTokens: aiResult.tokenUsage?.completionTokens ?? null,
+          totalTokens: aiResult.tokenUsage?.totalTokens ?? null,
         },
       }),
       fastify.prisma.user.update({

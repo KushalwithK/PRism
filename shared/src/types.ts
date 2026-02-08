@@ -69,6 +69,8 @@ export interface GenerateRequest {
   diff: string;
   platform: Platform;
   repoUrl: string;
+  baseBranch?: string;
+  compareBranch?: string;
   templateId?: string;
   additionalPrompt?: string;
 }
@@ -102,9 +104,14 @@ export interface Generation {
   templateId: string | null;
   platform: Platform;
   repoUrl: string;
+  baseBranch: string | null;
+  compareBranch: string | null;
   prTitle: string;
   prDescription: string;
   diffSummary: string;
+  promptTokens: number | null;
+  completionTokens: number | null;
+  totalTokens: number | null;
   createdAt: string;
   template?: { name: string } | null;
 }
@@ -136,6 +143,11 @@ export interface PlaceholderDef {
 export interface AIGenerationResult {
   title: string;
   placeholders: Record<string, string>;
+  tokenUsage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 // ── Messages (Extension) ──

@@ -9,8 +9,13 @@
   ],
   "host_permissions": [
     "https://github.com/*",
-    "https://gitlab.com/*"
+    "https://gitlab.com/*",
+    "http://13.234.111.14:3000/*",
+    "http://10.111.0.67:3000/*"
   ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src http://13.234.111.14:3000 http://10.111.0.67:3000"
+  },
   "background": {
     "service_worker": "background.js",
     "scripts": ["background.js"],

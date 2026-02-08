@@ -7,7 +7,7 @@ export default async function historyRoutes(fastify: FastifyInstance) {
 
   // GET /api/history — paginated list
   fastify.get<{
-    Querystring: { page?: string; pageSize?: string };
+    Querystring: { page?: string; pageSize?: string; repoUrl?: string; baseBranch?: string; compareBranch?: string };
   }>('/', {
     schema: {
       querystring: {
@@ -15,6 +15,9 @@ export default async function historyRoutes(fastify: FastifyInstance) {
         properties: {
           page: { type: 'string' },
           pageSize: { type: 'string' },
+          repoUrl: { type: 'string' },
+          baseBranch: { type: 'string' },
+          compareBranch: { type: 'string' },
         },
       },
     },
@@ -23,16 +26,27 @@ export default async function historyRoutes(fastify: FastifyInstance) {
     const pageSize = Math.min(50, Math.max(1, parseInt(request.query.pageSize || '10', 10)));
     const skip = (page - 1) * pageSize;
 
+    const where: { userId: string; repoUrl?: string; baseBranch?: string; compareBranch?: string } = { userId: request.userId };
+    if (request.query.repoUrl) {
+      where.repoUrl = request.query.repoUrl;
+    }
+    if (request.query.baseBranch) {
+      where.baseBranch = request.query.baseBranch;
+    }
+    if (request.query.compareBranch) {
+      where.compareBranch = request.query.compareBranch;
+    }
+
     const [data, total] = await Promise.all([
       fastify.prisma.generation.findMany({
-        where: { userId: request.userId },
+        where,
         include: { template: { select: { name: true } } },
         orderBy: { createdAt: 'desc' },
         skip,
         take: pageSize,
       }),
       fastify.prisma.generation.count({
-        where: { userId: request.userId },
+        where,
       }),
     ]);
 

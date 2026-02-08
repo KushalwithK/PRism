@@ -1,6 +1,6 @@
 import type { PlatformAdapter } from './platforms/platform-adapter.js';
 import { sendMessage } from '../shared/compat.js';
-import type { ExtensionResponse, GenerateResponse, UsageStats, UserProfile, Template } from '../shared/types.js';
+import type { ExtensionResponse, GenerateResponse, UsageStats, UserProfile, Template, Generation, PaginatedResponse } from '../shared/types.js';
 
 const BUTTON_ID = 'prism-generate-btn';
 const MODAL_HOST_ID = 'prism-modal-host';
@@ -39,6 +39,10 @@ const FONT_STACK = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 const sparkleIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${COLORS.primary}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z"/></svg>`;
 
 const prismLogo = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${COLORS.primary}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z"/></svg>`;
+
+const clockIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${COLORS.textSecondary}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+
+const previewIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
 
 // ── Button Styles ──
 
@@ -152,6 +156,14 @@ interface ModalContext {
   originalTitle: string;
   originalDescription: string;
   overrideTemplateId: string | null;
+}
+
+interface PreGenData {
+  authData: { isAuthenticated: boolean; user?: UserProfile } | undefined;
+  usageData: UsageStats | undefined;
+  templates: Template[];
+  repoGenerations: Generation[];
+  errorMsg?: string;
 }
 
 // ── Button Injection ──
@@ -317,32 +329,57 @@ function closeModal(ctx: ModalContext) {
 
 // ── State: Pre-Generate ──
 
-async function renderPreGenerate(ctx: ModalContext, errorMsg?: string) {
+async function renderPreGenerate(ctx: ModalContext, errorMsgOrCache?: string | PreGenData) {
   ctx.body.innerHTML = '';
   ctx.footer.innerHTML = '';
 
-  // Show loading while fetching auth + usage
-  ctx.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:${COLORS.textSecondary};font-size:14px;">Loading...</div>`;
+  const cached = typeof errorMsgOrCache === 'object' ? errorMsgOrCache : undefined;
+  const errorMsg = typeof errorMsgOrCache === 'string' ? errorMsgOrCache : cached?.errorMsg;
 
   let authData: { isAuthenticated: boolean; user?: UserProfile } | undefined;
   let usageData: UsageStats | undefined;
   let templates: Template[] = [];
+  let repoGenerations: Generation[] = [];
 
-  try {
-    const [authRes, usageRes, templatesRes] = await Promise.all([
-      sendMessage<ExtensionResponse<{ isAuthenticated: boolean; user?: UserProfile }>>({ type: 'GET_AUTH_STATE' }),
-      sendMessage<ExtensionResponse<UsageStats>>({ type: 'GET_USAGE' }),
-      sendMessage<ExtensionResponse<Template[]>>({ type: 'GET_TEMPLATES' }),
-    ]);
-    if (authRes.success) authData = authRes.data;
-    if (usageRes.success) usageData = usageRes.data;
-    if (templatesRes.success && templatesRes.data) templates = templatesRes.data;
-  } catch {
-    // If calls fail, we'll show unauthenticated state
+  if (cached) {
+    authData = cached.authData;
+    usageData = cached.usageData;
+    templates = cached.templates;
+    repoGenerations = cached.repoGenerations;
+  } else {
+    // Show loading while fetching auth + usage + history
+    ctx.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:${COLORS.textSecondary};font-size:14px;">Loading...</div>`;
+
+    try {
+      const metadata = ctx.adapter.getMetadata();
+      const [authRes, usageRes, templatesRes, historyRes] = await Promise.all([
+        sendMessage<ExtensionResponse<{ isAuthenticated: boolean; user?: UserProfile }>>({ type: 'GET_AUTH_STATE' }),
+        sendMessage<ExtensionResponse<UsageStats>>({ type: 'GET_USAGE' }),
+        sendMessage<ExtensionResponse<Template[]>>({ type: 'GET_TEMPLATES' }),
+        sendMessage<ExtensionResponse<PaginatedResponse<Generation>>>({
+          type: 'GET_HISTORY',
+          payload: {
+            page: 1,
+            pageSize: 5,
+            repoUrl: metadata.repoUrl,
+            baseBranch: metadata.targetBranch,
+            compareBranch: metadata.sourceBranch,
+          },
+        }),
+      ]);
+      if (authRes.success) authData = authRes.data;
+      if (usageRes.success) usageData = usageRes.data;
+      if (templatesRes.success && templatesRes.data) templates = templatesRes.data;
+      if (historyRes.success && historyRes.data) repoGenerations = historyRes.data.data;
+    } catch {
+      // If calls fail, we'll show unauthenticated state
+    }
   }
 
   ctx.body.innerHTML = '';
   ctx.footer.innerHTML = '';
+
+  const preGenData: PreGenData = { authData, usageData, templates, repoGenerations, errorMsg };
 
   // Not authenticated
   if (!authData?.isAuthenticated) {
@@ -484,6 +521,10 @@ async function renderPreGenerate(ctx: ModalContext, errorMsg?: string) {
       tplSelect.appendChild(opt);
     }
 
+    if (ctx.overrideTemplateId) {
+      tplSelect.value = ctx.overrideTemplateId;
+    }
+
     tplSelect.addEventListener('change', () => {
       ctx.overrideTemplateId = tplSelect.value || null;
     });
@@ -540,6 +581,68 @@ async function renderPreGenerate(ctx: ModalContext, errorMsg?: string) {
   ctx.body.appendChild(textareaWrap);
   ctx.body.appendChild(charCounter);
 
+  // Past generations for this repo
+  if (repoGenerations.length > 0) {
+    const section = document.createElement('div');
+    section.style.cssText = 'margin-top:16px;';
+
+    const sectionHeader = document.createElement('div');
+    sectionHeader.style.cssText = `display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:${COLORS.textSecondary};margin-bottom:8px;`;
+    sectionHeader.innerHTML = `${clockIcon}<span>Past Generations for This Repo</span>`;
+    section.appendChild(sectionHeader);
+
+    const list = document.createElement('div');
+    list.style.cssText = 'display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;';
+
+    for (const gen of repoGenerations) {
+      const item = document.createElement('div');
+      item.style.cssText = `
+        display:flex;align-items:center;gap:10px;
+        background:${COLORS.bgSecondary};border:1px solid ${COLORS.border};
+        border-radius:8px;padding:8px 12px;
+      `;
+
+      const info = document.createElement('div');
+      info.style.cssText = 'flex:1;min-width:0;';
+
+      const title = document.createElement('div');
+      title.style.cssText = `font-size:13px;font-weight:600;color:${COLORS.text};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;`;
+      title.textContent = gen.prTitle;
+      info.appendChild(title);
+
+      const meta = document.createElement('div');
+      meta.style.cssText = `font-size:11px;color:${COLORS.textMuted};margin-top:2px;`;
+      const templateName = gen.template?.name || 'No template';
+      const dateStr = new Date(gen.createdAt).toLocaleDateString();
+      meta.textContent = `${templateName} · ${dateStr}`;
+      info.appendChild(meta);
+
+      const previewBtn = document.createElement('button');
+      previewBtn.type = 'button';
+      previewBtn.style.cssText = `
+        background:transparent;color:${COLORS.primary};
+        border:1px solid ${COLORS.primaryBorder};border-radius:6px;
+        padding:4px 10px;font-size:12px;font-weight:500;
+        cursor:pointer;font-family:${FONT_STACK};
+        display:flex;align-items:center;gap:4px;
+        transition:background 0.15s;flex-shrink:0;
+      `;
+      previewBtn.innerHTML = `${previewIcon} Preview`;
+      previewBtn.addEventListener('mouseenter', () => { previewBtn.style.background = COLORS.primaryLight; });
+      previewBtn.addEventListener('mouseleave', () => { previewBtn.style.background = 'transparent'; });
+      previewBtn.addEventListener('click', () => {
+        renderHistoryPreview(ctx, gen, preGenData);
+      });
+
+      item.appendChild(info);
+      item.appendChild(previewBtn);
+      list.appendChild(item);
+    }
+
+    section.appendChild(list);
+    ctx.body.appendChild(section);
+  }
+
   // Footer buttons
   const cancelBtn = makeButton('Cancel', 'secondary');
   cancelBtn.addEventListener('click', () => closeModal(ctx));
@@ -567,6 +670,77 @@ async function renderPreGenerate(ctx: ModalContext, errorMsg?: string) {
 
   // Focus textarea
   setTimeout(() => textarea.focus(), 50);
+}
+
+// ── State: History Preview ──
+
+function renderHistoryPreview(ctx: ModalContext, generation: Generation, cachedData: PreGenData) {
+  ctx.body.innerHTML = '';
+  ctx.footer.innerHTML = '';
+
+  // Title (read-only)
+  const titleLabel = document.createElement('label');
+  titleLabel.style.cssText = `display:block;font-size:13px;font-weight:600;color:${COLORS.textSecondary};margin-bottom:4px;`;
+  titleLabel.textContent = 'Title';
+  ctx.body.appendChild(titleLabel);
+
+  const titleDiv = document.createElement('div');
+  titleDiv.style.cssText = `
+    width:100%;padding:10px 12px;
+    border:1px solid ${COLORS.border};border-radius:8px;
+    font-size:15px;font-weight:600;font-family:${FONT_STACK};
+    color:${COLORS.text};background:${COLORS.bgSecondary};
+    margin-bottom:14px;
+  `;
+  titleDiv.textContent = generation.prTitle;
+  ctx.body.appendChild(titleDiv);
+
+  // Description (read-only)
+  const descLabel = document.createElement('label');
+  descLabel.style.cssText = `display:block;font-size:13px;font-weight:600;color:${COLORS.textSecondary};margin-bottom:4px;`;
+  descLabel.textContent = 'Description';
+  ctx.body.appendChild(descLabel);
+
+  const descDiv = document.createElement('div');
+  descDiv.style.cssText = `
+    width:100%;min-height:calc(85vh * 0.45);max-height:calc(85vh * 0.55);padding:10px 12px;
+    border:1px solid ${COLORS.border};border-radius:8px;
+    font-size:14px;font-family:${FONT_STACK};
+    color:${COLORS.text};background:${COLORS.bgSecondary};
+    line-height:1.5;white-space:pre-wrap;overflow-y:auto;
+  `;
+  descDiv.textContent = generation.prDescription;
+  ctx.body.appendChild(descDiv);
+
+  // Meta line
+  const metaLine = document.createElement('div');
+  metaLine.style.cssText = `
+    display:flex;align-items:center;gap:16px;margin-top:10px;
+    font-size:12px;color:${COLORS.textMuted};
+  `;
+  const templateName = generation.template?.name || 'No template';
+  const dateStr = new Date(generation.createdAt).toLocaleDateString();
+  metaLine.innerHTML = `
+    <span>Template: ${escapeHtml(templateName)}</span>
+    <span>${escapeHtml(dateStr)}</span>
+  `;
+  ctx.body.appendChild(metaLine);
+
+  // Footer buttons
+  const backBtn = makeButton('Back', 'secondary');
+  backBtn.addEventListener('click', () => {
+    renderPreGenerate(ctx, cachedData);
+  });
+
+  const useBtn = makeButton('Use This', 'primary');
+  useBtn.addEventListener('click', () => {
+    ctx.adapter.fillTitle(generation.prTitle);
+    ctx.adapter.fillDescription(generation.prDescription);
+    closeModal(ctx);
+  });
+
+  ctx.footer.appendChild(backBtn);
+  ctx.footer.appendChild(useBtn);
 }
 
 // ── State: Loading ──
@@ -747,6 +921,8 @@ async function renderLoading(ctx: ModalContext, additionalPrompt?: string) {
       diff,
       platform: ctx.adapter.platform,
       repoUrl: metadata.repoUrl,
+      baseBranch: metadata.targetBranch,
+      compareBranch: metadata.sourceBranch,
       additionalPrompt,
     };
     if (ctx.overrideTemplateId) {
