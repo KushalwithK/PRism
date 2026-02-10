@@ -13,13 +13,19 @@ enum Plan {
   MAX
 }
 
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  TRIALING
+}
+
 model User {
   id                String         @id @default(uuid())
   email             String         @unique
   passwordHash      String
   name              String
-  plan              Plan           @default(FREE)
-  usageCount        Int            @default(0)
+  razorpayCustomerId String?       @unique
   defaultTemplateId String?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
@@ -28,8 +34,59 @@ model User {
   templates         Template[]     @relation("UserTemplates")
   generations       Generation[]
   refreshTokens     RefreshToken[]
+  subscriptions     Subscription[]
 
   @@map("users")
+}
+
+model Product {
+  id          String        @id @default(uuid())
+  slug        String        @unique
+  name        String
+  description String
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+
+  plans         ProductPlan[]
+  subscriptions Subscription[]
+
+  @@map("products")
+}
+
+model ProductPlan {
+  id              String   @id @default(uuid())
+  productId       String
+  plan            Plan
+  razorpayPlanId  String?
+  monthlyPrice    Int      @default(0)
+  usageLimit      Int
+
+  product         Product  @relation(fields: [productId], references: [id])
+
+  @@unique([productId, plan])
+  @@map("product_plans")
+}
+
+model Subscription {
+  id                       String             @id @default(uuid())
+  userId                   String
+  productId                String
+  plan                     Plan               @default(FREE)
+  status                   SubscriptionStatus @default(ACTIVE)
+  usageCount               Int                @default(0)
+  usageLimit               Int                @default(5)
+  razorpaySubscriptionId   String?            @unique
+  currentPeriodStart       DateTime           @default(now())
+  currentPeriodEnd         DateTime
+  cancelAtPeriodEnd        Boolean            @default(false)
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([userId, productId])
+  @@map("subscriptions")
 }
 
 model Template {

@@ -53,6 +53,12 @@ export const config = {
     apiKey: process.env.GEMINI_API_KEY || '',
   },
 
+  razorpay: {
+    keyId: process.env.RAZORPAY_KEY_ID || '',
+    keySecret: process.env.RAZORPAY_KEY_SECRET || '',
+    webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || '',
+  },
+
   rateLimit: {
     global: { max: 100, timeWindow: '1 minute' },
     auth: { max: 10, timeWindow: '1 minute' },

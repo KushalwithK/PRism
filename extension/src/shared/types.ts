@@ -1,5 +1,7 @@
 export type {
   UserProfile,
+  ProductSubscription,
+  SubscriptionStatus,
   AuthTokens,
   AuthResponse,
   Template,

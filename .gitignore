@@ -5,3 +5,5 @@ dist/
 *.d.ts.map
 .DS_Store
 *.tsbuildinfo
+.next/
+.vercel/

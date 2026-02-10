@@ -5,14 +5,18 @@
   "workspaces": [
     "shared",
     "backend",
-    "extension"
+    "extension",
+    "website"
   ],
   "scripts": {
-    "backend:dev": "npm run dev --workspace=backend",
-    "backend:build": "npm run build --workspace=backend",
-    "backend:start": "npm run start --workspace=backend",
+    "backend:dev": "npm run dev --workspace=@prism/backend",
+    "backend:build": "npm run build --workspace=@prism/backend",
+    "backend:start": "npm run start --workspace=@prism/backend",
     "extension:dev": "npm run dev --workspace=extension",
     "extension:build": "npm run build --workspace=extension",
+    "website:dev": "npm run dev --workspace=@prism/website",
+    "website:build": "npm run build --workspace=@prism/website",
+    "website:start": "npm run start --workspace=@prism/website",
     "db:migrate": "npm run db:migrate --workspace=backend",
     "db:seed": "npm run db:seed --workspace=backend",
     "db:studio": "npm run db:studio --workspace=backend",

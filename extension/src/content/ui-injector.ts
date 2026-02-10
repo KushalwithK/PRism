@@ -8,37 +8,37 @@ const MODAL_HOST_ID = 'prism-modal-host';
 // ── Design Tokens ──
 
 const COLORS = {
-  primary: '#8b6fd4',
-  primaryLight: 'rgba(139,111,212,0.12)',
-  primaryBorder: 'rgba(139,111,212,0.4)',
-  primaryBorderHover: 'rgba(139,111,212,0.6)',
-  primaryActive: 'rgba(139,111,212,0.2)',
-  bg: '#161b22',
-  bgSecondary: '#1c2129',
-  bgTertiary: '#21262d',
-  text: '#e6edf3',
-  textSecondary: '#8b949e',
-  textMuted: '#6e7681',
-  border: '#30363d',
+  primary: '#8b5cf6',
+  primaryLight: 'rgba(139,92,246,0.12)',
+  primaryBorder: 'rgba(139,92,246,0.4)',
+  primaryBorderHover: 'rgba(139,92,246,0.6)',
+  primaryActive: 'rgba(139,92,246,0.2)',
+  bg: '#030014',
+  bgSecondary: '#0a0a1a',
+  bgTertiary: '#12112a',
+  text: '#f5f3ff',
+  textSecondary: '#a5a0c0',
+  textMuted: '#6b6590',
+  border: '#252347',
   error: '#f85149',
   errorBg: 'rgba(248,81,73,0.1)',
   errorBorder: 'rgba(248,81,73,0.3)',
   success: '#3fb950',
-  overlay: 'rgba(0,0,0,0.65)',
-  progressBg: '#30363d',
-  badgeFree: '#6e7681',
-  badgePro: '#8b6fd4',
+  overlay: 'rgba(3,0,20,0.75)',
+  progressBg: '#252347',
+  badgeFree: '#6b6590',
+  badgePro: '#8b5cf6',
   badgeMax: '#d4a017',
-  inputBg: '#0d1117',
+  inputBg: '#08081a',
 };
 
-const FONT_STACK = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+const FONT_STACK = "'General Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
 // ── Icons ──
 
-const sparkleIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${COLORS.primary}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z"/></svg>`;
+const sparkleIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${COLORS.primary}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M6 9v12"/></svg>`;
 
-const prismLogo = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${COLORS.primary}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z"/></svg>`;
+const prismLogo = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${COLORS.primary}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M6 9v12"/></svg>`;
 
 const clockIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${COLORS.textSecondary}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
 
@@ -66,6 +66,7 @@ const baseStyle = `
 const hoverStyle = `
   background: ${COLORS.primaryLight};
   border-color: ${COLORS.primaryBorderHover};
+  box-shadow: 0 0 12px rgba(139,92,246,0.2);
 `;
 
 const activeStyle = `
@@ -97,8 +98,8 @@ const shadowStyles = `
   }
 
   @keyframes prism-pulse-glow {
-    0%, 100% { transform: translate(-50%,-50%) scale(1); filter: drop-shadow(0 0 4px rgba(139,111,212,0.3)); }
-    50% { transform: translate(-50%,-50%) scale(1.06); filter: drop-shadow(0 0 10px rgba(139,111,212,0.5)); }
+    0%, 100% { transform: translate(-50%,-50%) scale(1); filter: drop-shadow(0 0 4px rgba(139,92,246,0.3)); }
+    50% { transform: translate(-50%,-50%) scale(1.06); filter: drop-shadow(0 0 10px rgba(139,92,246,0.5)); }
   }
 
   @keyframes prism-ring-rotate {
@@ -230,7 +231,7 @@ function openModal(adapter: PlatformAdapter) {
   const overlay = document.createElement('div');
   overlay.style.cssText = `
     position:absolute;top:0;left:0;width:100%;height:100%;
-    background:${COLORS.overlay};
+    background:${COLORS.overlay};backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
   `;
   shadow.appendChild(overlay);
 
@@ -244,6 +245,7 @@ function openModal(adapter: PlatformAdapter) {
     font-family:${FONT_STACK};
     animation: prism-fade-in 0.2s ease-out;
     overflow:hidden;
+    box-shadow: inset 0 0 30px rgba(139,92,246,0.05), 0 8px 32px rgba(0,0,0,0.5);
   `;
   shadow.appendChild(modal);
 
@@ -425,8 +427,11 @@ async function renderPreGenerate(ctx: ModalContext, errorMsgOrCache?: string | P
   nameEl.style.cssText = `font-size:14px;font-weight:600;color:${COLORS.text};`;
   nameEl.textContent = user.name || user.email;
 
+  const prismSub = user.subscriptions.find((s) => s.productSlug === 'prism');
+  const userPlan = prismSub?.plan ?? 'FREE';
+
   const badge = document.createElement('span');
-  if (user.plan === 'MAX') {
+  if (userPlan === 'MAX') {
     badge.style.cssText = `
       font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;
       background:linear-gradient(135deg, #d4a017, #f0c040, #ffe066, #f0c040, #d4a017);
@@ -437,15 +442,15 @@ async function renderPreGenerate(ctx: ModalContext, errorMsgOrCache?: string | P
       box-shadow:0 0 8px rgba(212,160,23,0.4);
     `;
     badge.textContent = 'MAX';
-  } else if (user.plan === 'PRO') {
+  } else if (userPlan === 'PRO') {
     badge.style.cssText = `
       font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;
-      background:linear-gradient(135deg, #8b6fd4, #b44adf, #e879de, #b44adf, #8b6fd4);
+      background:linear-gradient(135deg, #7c3aed, #8b5cf6, #c4b5fd, #8b5cf6, #7c3aed);
       background-size:200% auto;
       animation:prism-pro-shine 3s linear infinite;
       color:white;text-transform:uppercase;letter-spacing:0.5px;
-      text-shadow:0 0 6px rgba(232,121,222,0.5);
-      box-shadow:0 0 8px rgba(139,111,212,0.4);
+      text-shadow:0 0 6px rgba(196,181,253,0.5);
+      box-shadow:0 0 8px rgba(139,92,246,0.4);
     `;
     badge.textContent = 'PRO';
   } else {
@@ -779,8 +784,8 @@ async function renderLoading(ctx: ModalContext, additionalPrompt?: string) {
   const ring1 = document.createElement('div');
   ring1.style.cssText = `
     position:absolute;inset:0;border-radius:50%;
-    border:1.5px solid rgba(139,111,212,0.25);
-    border-top-color:rgba(139,111,212,0.7);
+    border:1.5px solid rgba(139,92,246,0.25);
+    border-top-color:rgba(139,92,246,0.7);
     animation: prism-ring-rotate 3s linear infinite;
   `;
   orbContainer.appendChild(ring1);
@@ -789,8 +794,8 @@ async function renderLoading(ctx: ModalContext, additionalPrompt?: string) {
   const ring2 = document.createElement('div');
   ring2.style.cssText = `
     position:absolute;inset:6px;border-radius:50%;
-    border:1px dashed rgba(139,111,212,0.15);
-    border-top-color:rgba(139,111,212,0.4);
+    border:1px dashed rgba(139,92,246,0.15);
+    border-top-color:rgba(139,92,246,0.4);
     animation: prism-ring-rotate-reverse 5s linear infinite;
   `;
   orbContainer.appendChild(ring2);
@@ -801,7 +806,7 @@ async function renderLoading(ctx: ModalContext, additionalPrompt?: string) {
     position:absolute;top:50%;left:50%;
     animation: prism-pulse-glow 2.5s ease-in-out infinite;
   `;
-  sparkle.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="${COLORS.primary}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z"/></svg>`;
+  sparkle.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="${COLORS.primary}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M6 9v12"/></svg>`;
   orbContainer.appendChild(sparkle);
 
   centralArea.appendChild(orbContainer);

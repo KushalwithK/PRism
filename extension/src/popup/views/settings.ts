@@ -1,7 +1,6 @@
 import { sendMessage } from '../../shared/compat.js';
 import type { ExtensionResponse, UserProfile, Template, CreateTemplateRequest, UpdateTemplateRequest } from '../../shared/types.js';
-import { PLAN_LIMITS, SAMPLE_PLACEHOLDER_VALUES, PLACEHOLDERS, renderTemplate } from '@prism/shared';
-import type { Plan } from '@prism/shared';
+import { SAMPLE_PLACEHOLDER_VALUES, PLACEHOLDERS, renderTemplate } from '@prism/shared';
 
 let currentTemplates: Template[] = [];
 
@@ -30,10 +29,13 @@ async function loadProfile(container: HTMLElement) {
     currentTemplates = templatesRes.data ?? [];
     const defaultId = user.defaultTemplateId;
     const initials = getInitials(user.name);
-    const planLimit = PLAN_LIMITS[user.plan as Plan];
-    const isUnlimited = planLimit === Infinity;
+    const prismSub = user.subscriptions.find((s) => s.productSlug === 'prism');
+    const userPlan = prismSub?.plan ?? 'FREE';
+    const userUsageCount = prismSub?.usageCount ?? 0;
+    const planLimit = prismSub?.usageLimit ?? 5;
+    const isUnlimited = planLimit === -1;
     const usageLimit = isUnlimited ? '&infin;' : String(planLimit);
-    const usagePercent = isUnlimited ? 0 : Math.min((user.usageCount / planLimit) * 100, 100);
+    const usagePercent = isUnlimited ? 0 : Math.min((userUsageCount / planLimit) * 100, 100);
 
     container.innerHTML = `
       <div class="section-title">Account</div>
@@ -48,12 +50,12 @@ async function loadProfile(container: HTMLElement) {
         <div class="divider"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;">
           <span style="font-size:13px;color:var(--text-secondary);">Plan</span>
-          <span class="usage-badge">${escapeHtml(user.plan)}</span>
+          <span class="usage-badge">${escapeHtml(userPlan)}</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;margin-top:4px;">
           <span style="font-size:13px;color:var(--text-secondary);">Generations</span>
           <div style="display:flex;align-items:center;gap:10px;">
-            <span style="font-size:13px;font-weight:600;color:var(--text-primary);">${user.usageCount} / ${usageLimit}</span>
+            <span style="font-size:13px;font-weight:600;color:var(--text-primary);">${userUsageCount} / ${usageLimit}</span>
             ${!isUnlimited ? `
               <div class="progress-track" style="width:48px;height:4px;margin:0;">
                 <div class="progress-fill" style="width:${usagePercent}%"></div>
@@ -62,6 +64,12 @@ async function loadProfile(container: HTMLElement) {
           </div>
         </div>
       </div>
+
+      ${userPlan === 'FREE' ? `
+        <button class="btn btn-primary" id="btn-upgrade-plan" style="margin-top:8px;">
+          <span class="btn-label">\u2728 Upgrade Plan</span>
+        </button>
+      ` : ''}
 
       <div class="section-title" style="margin-top:16px;">Default Template</div>
       <div class="form-group">
@@ -89,7 +97,7 @@ async function loadProfile(container: HTMLElement) {
 
       <div class="section-title" style="margin-top:16px;">About</div>
       <div class="card-static">
-        <div style="font-size:16px;font-weight:700;margin-bottom:6px;background:linear-gradient(135deg,var(--purple-light),var(--purple-primary));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">PRism v1.0.0</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:6px;background:linear-gradient(135deg,var(--accent-light),var(--accent-primary));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">PRism v1.0.0</div>
         <div style="font-size:13px;color:var(--text-tertiary);line-height:1.5;">
           AI-powered PR description generator for GitHub and GitLab.
         </div>
@@ -126,6 +134,23 @@ async function loadProfile(container: HTMLElement) {
         alertEl.innerHTML = '<div class="alert alert-error">\u2716 Failed to save preference</div>';
       }
     });
+
+    // Upgrade plan button
+    const upgradeBtnEl = document.getElementById('btn-upgrade-plan');
+    if (upgradeBtnEl) {
+      upgradeBtnEl.addEventListener('click', async () => {
+        try {
+          const res = await sendMessage<ExtensionResponse<{ url: string }>>({
+            type: 'GET_UPGRADE_URL',
+          });
+          if (res.success && res.data?.url) {
+            chrome.tabs.create({ url: res.data.url });
+          }
+        } catch {
+          // Silently fail
+        }
+      });
+    }
 
     // New template button
     document.getElementById('btn-new-template')!.addEventListener('click', () => {

@@ -11,10 +11,11 @@
     "https://github.com/*",
     "https://gitlab.com/*",
     "http://13.234.111.14:3000/*",
-    "http://10.111.0.67:3000/*"
+    "http://10.111.0.67:3000/*",
+    "http://10.12.165.88:3000/*"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src http://13.234.111.14:3000 http://10.111.0.67:3000"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src http://13.234.111.14:3000 http://10.111.0.67:3000 http://10.12.165.88:3000"
   },
   "background": {
     "service_worker": "background.js",
@@ -30,9 +31,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://github.com/*/compare/*",
-        "https://github.com/*/pull/new/*",
-        "https://gitlab.com/*/-/merge_requests/new*"
+        "https://github.com/*",
+        "https://gitlab.com/*"
       ],
       "js": ["content.js"],
       "run_at": "document_idle"

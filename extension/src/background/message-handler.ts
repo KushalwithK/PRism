@@ -2,6 +2,8 @@ import type { ExtensionMessage, ExtensionResponse } from '../shared/types.js';
 import { browserAPI } from '../shared/compat.js';
 import { login, register, logout, getAuthState } from './auth-manager.js';
 import { apiRequest } from './api-client.js';
+import { WEBSITE_URL, STORAGE_KEYS } from '../shared/constants.js';
+import { getStorageItem } from '../shared/storage.js';
 
 export function setupMessageHandler() {
   browserAPI.runtime.onMessage.addListener(
@@ -141,6 +143,13 @@ async function handleMessage(message: ExtensionMessage): Promise<ExtensionRespon
         method: 'DELETE',
       });
       return { success: true };
+    }
+
+    case 'GET_UPGRADE_URL': {
+      const refreshToken = await getStorageItem<string>(STORAGE_KEYS.REFRESH_TOKEN);
+      if (!refreshToken) return { success: false, error: 'Not authenticated' };
+      const url = `${WEBSITE_URL}/api/auth/token-login?token=${encodeURIComponent(refreshToken)}&redirect=${encodeURIComponent('/products/prism/pricing')}`;
+      return { success: true, data: { url } };
     }
 
     default:

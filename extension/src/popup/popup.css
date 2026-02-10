@@ -2,28 +2,28 @@
 
 /* --- CSS Custom Properties --- */
 :root {
-  /* Surfaces */
-  --bg-base: #0c0c12;
-  --bg-surface: #13131d;
-  --bg-elevated: #1a1a28;
-  --bg-hover: #222235;
+  /* Surfaces — Deep space dark */
+  --bg-base: #030014;
+  --bg-surface: #0a0a1a;
+  --bg-elevated: #12112a;
+  --bg-hover: #1a1940;
 
-  /* Purple */
-  --purple-light: #a78bfa;
-  --purple-primary: #8b6fd4;
-  --purple-button: #7c5cbf;
-  --purple-button-hover: #6a4dab;
-  --purple-button-pressed: #573d96;
+  /* Accent (Violet) */
+  --accent-light: #c4b5fd;
+  --accent-primary: #8b5cf6;
+  --accent-button: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-pressed: #5b21b6;
 
   /* Text */
-  --text-primary: #f0eef6;
-  --text-secondary: #a09bb5;
-  --text-tertiary: #6b6580;
+  --text-primary: #f5f3ff;
+  --text-secondary: #a5a0c0;
+  --text-tertiary: #6b6590;
 
   /* Borders */
-  --border-subtle: #1e1e30;
-  --border-default: #2a2a42;
-  --border-purple: rgba(139, 111, 212, 0.4);
+  --border-subtle: #1a1835;
+  --border-default: #252347;
+  --border-accent: rgba(139, 92, 246, 0.4);
 
   /* Semantic */
   --success: #4ade80;
@@ -37,8 +37,8 @@
   --warning-border: rgba(250, 204, 21, 0.25);
 
   /* Glow */
-  --glow: rgba(139, 111, 212, 0.15);
-  --glow-strong: rgba(139, 111, 212, 0.3);
+  --glow: rgba(139, 92, 246, 0.15);
+  --glow-strong: rgba(139, 92, 246, 0.3);
 
   /* Spacing */
   --space-1: 4px;
@@ -78,7 +78,7 @@
 body {
   width: 380px;
   min-height: 500px;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'General Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 14px;
   color: var(--text-primary);
   background: var(--bg-base);
@@ -121,7 +121,7 @@ body {
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.5px;
-  background: linear-gradient(135deg, var(--purple-light), var(--purple-primary));
+  background: linear-gradient(135deg, var(--accent-light), var(--accent-primary));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -204,7 +204,7 @@ body {
 }
 
 .nav-btn.active {
-  color: var(--purple-light);
+  color: var(--accent-light);
 }
 
 .nav-btn.active::before {
@@ -214,7 +214,7 @@ body {
   left: 20%;
   right: 20%;
   height: 2px;
-  background: var(--purple-primary);
+  background: var(--accent-primary);
   border-radius: 0 0 2px 2px;
 }
 
@@ -260,11 +260,11 @@ body {
   top: 8px;
   transform: translateY(0);
   font-size: 10px;
-  color: var(--purple-light);
+  color: var(--accent-light);
 }
 
 .form-field input:focus {
-  border-color: var(--purple-primary);
+  border-color: var(--accent-primary);
   box-shadow: 0 0 0 3px var(--glow);
 }
 
@@ -301,7 +301,7 @@ body {
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
-  border-color: var(--purple-primary);
+  border-color: var(--accent-primary);
   box-shadow: 0 0 0 3px var(--glow);
 }
 
@@ -343,19 +343,19 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--purple-button), var(--purple-primary));
+  background: linear-gradient(135deg, var(--accent-button), var(--accent-primary));
   color: white;
   box-shadow: var(--shadow-btn);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--purple-button-hover), var(--purple-button));
-  box-shadow: var(--shadow-btn-hover);
+  background: linear-gradient(135deg, var(--accent-hover), var(--accent-button));
+  box-shadow: 0 4px 20px var(--glow-strong), 0 0 8px var(--glow);
   transform: translateY(-1px);
 }
 
 .btn-primary:active:not(:disabled) {
-  background: var(--purple-button-pressed);
+  background: var(--accent-pressed);
   transform: translateY(0);
 }
 
@@ -368,7 +368,7 @@ body {
 .btn-secondary:hover:not(:disabled) {
   background: var(--bg-hover);
   color: var(--text-primary);
-  border-color: var(--border-purple);
+  border-color: var(--border-accent);
 }
 
 .btn-secondary:disabled {
@@ -377,7 +377,7 @@ body {
 
 .btn-link {
   background: none;
-  color: var(--purple-light);
+  color: var(--accent-light);
   font-weight: 500;
   text-decoration: underline;
   border: none;
@@ -447,9 +447,10 @@ body {
 }
 
 .card:hover {
-  border-color: var(--border-purple);
+  border-color: var(--border-accent);
   box-shadow: var(--shadow-glow);
   transform: translateY(-1px);
+  transition: all 0.45s cubic-bezier(.6,.6,0,1);
 }
 
 .card-title {
@@ -496,7 +497,7 @@ body {
 
 .usage-badge .count {
   font-weight: 700;
-  color: var(--purple-light);
+  color: var(--accent-light);
 }
 
 /* --- Progress Bar --- */
@@ -512,7 +513,7 @@ body {
 .progress-fill {
   height: 100%;
   border-radius: var(--radius-full);
-  background: linear-gradient(90deg, var(--purple-primary), var(--purple-light));
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-light));
   transition: width var(--transition-slow);
   animation: progressFill 0.8s ease-out;
 }
@@ -546,7 +547,7 @@ body {
 .section-header .count-badge {
   font-size: 11px;
   font-weight: 600;
-  color: var(--purple-light);
+  color: var(--accent-light);
   background: var(--bg-elevated);
   padding: 2px 8px;
   border-radius: var(--radius-full);
@@ -582,9 +583,9 @@ body {
 }
 
 .tab-toggle button.active {
-  background: var(--purple-button);
+  background: var(--accent-button);
   color: white;
-  box-shadow: 0 2px 8px rgba(124, 92, 191, 0.3);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
 }
 
 /* --- Platform Badge --- */
@@ -673,8 +674,8 @@ body {
 
 .pagination-btn:hover:not(:disabled) {
   background: var(--bg-hover);
-  border-color: var(--border-purple);
-  color: var(--purple-light);
+  border-color: var(--border-accent);
+  color: var(--accent-light);
 }
 
 .pagination-btn:disabled {
@@ -686,7 +687,7 @@ body {
 .howto-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-left: 3px solid var(--purple-primary);
+  border-left: 3px solid var(--accent-primary);
   border-radius: var(--radius-md);
   padding: var(--space-4);
 }
@@ -715,7 +716,7 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--purple-button), var(--purple-primary));
+  background: linear-gradient(135deg, var(--accent-button), var(--accent-primary));
   color: white;
   font-size: 11px;
   font-weight: 700;
@@ -726,7 +727,7 @@ body {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--purple-button), var(--purple-primary));
+  background: linear-gradient(135deg, var(--accent-button), var(--accent-primary));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1068,7 +1069,7 @@ body {
 }
 
 .template-card:hover {
-  border-color: var(--border-purple);
+  border-color: var(--border-accent);
 }
 
 .template-card-info {
@@ -1153,14 +1154,14 @@ body {
   border-radius: var(--radius-sm);
   font-size: 11px;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  color: var(--purple-light);
+  color: var(--accent-light);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .placeholder-chip:hover {
   background: var(--bg-hover);
-  border-color: var(--border-purple);
+  border-color: var(--border-accent);
   color: var(--text-primary);
 }
 
@@ -1173,14 +1174,14 @@ body {
   font-size: 11px;
   font-weight: 600;
   font-family: inherit;
-  color: var(--purple-light);
+  color: var(--accent-light);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .btn-new-template:hover {
   background: var(--bg-hover);
-  border-color: var(--border-purple);
+  border-color: var(--border-accent);
 }
 
 /* --- Template Body Textarea --- */
@@ -1201,7 +1202,7 @@ body {
 }
 
 .template-body-textarea:focus {
-  border-color: var(--purple-primary);
+  border-color: var(--accent-primary);
   box-shadow: 0 0 0 3px var(--glow);
 }
 
@@ -1234,4 +1235,16 @@ body {
   width: auto;
   padding: 8px 16px;
   font-size: 13px;
+}
+
+/* ── Shimmer animation for cards ── */
+@keyframes cardShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ── Subtle glow breathe for active elements ── */
+@keyframes glowBreathe {
+  0%, 100% { box-shadow: 0 0 8px var(--glow), 0 0 2px var(--glow); }
+  50% { box-shadow: 0 0 16px var(--glow-strong), 0 0 4px var(--glow); }
 }

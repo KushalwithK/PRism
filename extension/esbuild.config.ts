@@ -7,6 +7,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const isWatch = process.argv.includes('--watch');
 const isFirefox = process.env.BROWSER === 'firefox';
 const apiUrl = process.env.API_URL || 'http://localhost:3000';
+const websiteUrl = process.env.WEBSITE_URL || 'http://localhost:3001';
 const outdir = resolve(__dirname, 'dist');
 
 // Ensure output directory
@@ -33,6 +34,7 @@ const buildOptions: esbuild.BuildOptions = {
   define: {
     'process.env.BROWSER': JSON.stringify(isFirefox ? 'firefox' : 'chrome'),
     'process.env.API_URL': JSON.stringify(apiUrl),
+    'process.env.WEBSITE_URL': JSON.stringify(websiteUrl),
   },
 };
 

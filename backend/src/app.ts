@@ -14,6 +14,7 @@ import templateRoutes from './routes/templates/index.js';
 import generateRoutes from './routes/generate/index.js';
 import historyRoutes from './routes/history/index.js';
 import usageRoutes from './routes/usage/index.js';
+import billingRoutes from './routes/billing/index.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -35,6 +36,7 @@ export async function buildApp() {
   await app.register(generateRoutes, { prefix: '/api/generate' });
   await app.register(historyRoutes, { prefix: '/api/history' });
   await app.register(usageRoutes, { prefix: '/api/usage' });
+  await app.register(billingRoutes, { prefix: '/api/billing' });
 
   // Health check
   app.get('/health', async () => ({ status: 'ok' }));

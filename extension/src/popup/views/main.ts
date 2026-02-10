@@ -58,7 +58,7 @@ async function loadUsage() {
               <div class="progress-fill ${fillClass}" style="width:${percentage}%"></div>
             </div>
           ` : `
-            <div style="text-align:center;padding:4px 0;font-size:20px;color:var(--purple-light);font-weight:700;">&infin;</div>
+            <div style="text-align:center;padding:4px 0;font-size:20px;color:var(--accent-light);font-weight:700;">&infin;</div>
           `}
           <div style="margin-top:8px;">
             <span class="usage-badge">${plan} plan</span>

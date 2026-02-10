@@ -122,10 +122,15 @@ export const API_PATHS = {
   AUTH_LOGIN: '/api/auth/login',
   AUTH_REFRESH: '/api/auth/refresh',
   AUTH_PROFILE: '/api/auth/profile',
+  AUTH_CHANGE_PASSWORD: '/api/auth/change-password',
   TEMPLATES: '/api/templates',
   GENERATE: '/api/generate',
   HISTORY: '/api/history',
   USAGE: '/api/usage',
+  BILLING_CHECKOUT: '/api/billing/checkout',
+  BILLING_PORTAL: '/api/billing/portal',
+  BILLING_WEBHOOK: '/api/billing/webhook',
+  BILLING_SUBSCRIPTIONS: '/api/billing/subscriptions',
 } as const;
 
 // ── Defaults ──

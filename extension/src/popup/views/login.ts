@@ -9,6 +9,13 @@ export function renderLoginView(
 
   function render() {
     container.innerHTML = `
+      <div style="text-align:center;padding:20px 0 16px;">
+        <div style="display:inline-flex;align-items:center;gap:8px;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M6 9v12"/></svg>
+          <span style="font-size:22px;font-weight:700;background:linear-gradient(135deg,var(--accent-light),var(--accent-primary));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">PRism</span>
+        </div>
+        <p style="font-size:13px;color:var(--text-secondary);margin-top:6px;">AI-powered PR descriptions for GitHub & GitLab</p>
+      </div>
       <div class="tab-toggle">
         <button class="${isLogin ? 'active' : ''}" id="tab-login">Login</button>
         <button class="${!isLogin ? 'active' : ''}" id="tab-register">Register</button>
@@ -34,6 +41,9 @@ export function renderLoginView(
           <span class="btn-spinner"></span>
         </button>
       </form>
+      <div style="text-align:center;margin-top:20px;font-size:11px;color:var(--text-tertiary);">
+        Powered by <strong style="color:var(--text-secondary);">Lucent</strong>
+      </div>
     `;
 
     container.querySelector('#tab-login')!.addEventListener('click', () => {

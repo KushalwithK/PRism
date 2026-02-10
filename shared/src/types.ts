@@ -2,13 +2,26 @@
 
 export type Plan = 'FREE' | 'PRO' | 'MAX';
 
+export type SubscriptionStatus = 'ACTIVE' | 'CANCELED' | 'PAST_DUE' | 'TRIALING';
+
+export interface ProductSubscription {
+  productSlug: string;
+  productName: string;
+  plan: Plan;
+  status: SubscriptionStatus;
+  usageCount: number;
+  usageLimit: number;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+}
+
 export interface UserProfile {
   id: string;
   email: string;
   name: string;
-  plan: Plan;
-  usageCount: number;
   defaultTemplateId: string | null;
+  createdAt: string;
+  subscriptions: ProductSubscription[];
 }
 
 export interface AuthTokens {
@@ -29,6 +42,11 @@ export interface LoginRequest {
 
 export interface RefreshRequest {
   refreshToken: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export interface AuthResponse {
@@ -127,10 +145,12 @@ export interface PaginatedResponse<T> {
 // ── Usage ──
 
 export interface UsageStats {
+  product: string;
   used: number;
   limit: number;
   plan: Plan;
   remaining: number;
+  periodEnd: string;
 }
 
 // ── AI Provider ──
@@ -167,7 +187,8 @@ export type MessageType =
   | 'UPDATE_GENERATION'
   | 'CREATE_TEMPLATE'
   | 'UPDATE_TEMPLATE'
-  | 'DELETE_TEMPLATE';
+  | 'DELETE_TEMPLATE'
+  | 'GET_UPGRADE_URL';
 
 export interface ExtensionMessage {
   type: MessageType;
