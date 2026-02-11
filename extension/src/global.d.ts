@@ -6,5 +6,6 @@ declare namespace process {
   const env: {
     BROWSER: 'chrome' | 'firefox';
     API_URL: string;
+    WEBSITE_URL: string;
   };
 }

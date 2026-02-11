@@ -6,7 +6,7 @@ import { Check, Crown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { UserProfile } from "@prism/shared";
+import { PLAN_ORDER, type UserProfile } from "@prism/shared";
 import { PaymentSuccessModal } from "./payment-success-modal";
 
 interface PricingFeature {
@@ -172,10 +172,16 @@ export function PricingSection() {
     }
   }
 
+  function isLowerPlan(tierPlan: string): boolean {
+    if (!currentPlan) return false;
+    return PLAN_ORDER[tierPlan as keyof typeof PLAN_ORDER] < PLAN_ORDER[currentPlan as keyof typeof PLAN_ORDER];
+  }
+
   function getCtaLabel(tier: PricingTier): string {
     if (checkingAuth) return tier.plan === "FREE" ? "Get Started" : `Upgrade to ${tier.name}`;
     if (!user) return tier.plan === "FREE" ? "Get Started" : `Upgrade to ${tier.name}`;
     if (currentPlan === tier.plan) return "Current Plan";
+    if (isLowerPlan(tier.plan)) return tier.plan === "FREE" ? "Free Plan" : tier.name;
     if (tier.plan === "FREE") return "Free Plan";
     return `Upgrade to ${tier.name}`;
   }
@@ -200,6 +206,8 @@ export function PricingSection() {
           const isCurrent = isCurrentPlan(tier.plan);
           const isLoading = loadingPlan === tier.plan;
 
+          const isLower = isLowerPlan(tier.plan);
+
           return (
             <motion.div
               key={tier.name}
@@ -207,9 +215,11 @@ export function PricingSection() {
                 "relative flex flex-col rounded-xl border p-6",
                 isCurrent
                   ? "border-primary bg-primary/5 shadow-lg shadow-primary/10 ring-2 ring-primary"
-                  : tier.highlighted
-                    ? "border-primary bg-card shadow-lg shadow-primary/10"
-                    : "border-border/50 bg-card"
+                  : isLower
+                    ? "border-border/30 bg-card/60 opacity-60"
+                    : tier.highlighted
+                      ? "border-primary bg-card shadow-lg shadow-primary/10"
+                      : "border-border/50 bg-card"
               )}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -267,13 +277,13 @@ export function PricingSection() {
               <Button
                 className="mt-6"
                 variant={
-                  isCurrent
+                  isCurrent || isLower
                     ? "secondary"
                     : tier.highlighted
                       ? "default"
                       : "outline"
                 }
-                disabled={isCurrent || isLoading}
+                disabled={isCurrent || isLower || isLoading}
                 onClick={() => {
                   if (tier.plan === "FREE") {
                     window.location.href = user ? "/dashboard" : "/register";

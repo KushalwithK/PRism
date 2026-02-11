@@ -119,9 +119,16 @@ function SubscriptionCard({
         </div>
 
         {/* Upgrade button */}
-        {sub.plan === "FREE" && (
-          <Button className="w-full" size="sm" asChild>
-            <Link href="/products/prism/pricing">Upgrade Plan</Link>
+        {sub.plan !== "MAX" && (
+          <Button
+            className="w-full"
+            size="sm"
+            variant={sub.plan === "FREE" ? "default" : "outline"}
+            asChild
+          >
+            <Link href="/products/prism/pricing">
+              {sub.plan === "FREE" ? "Upgrade Plan" : "Upgrade to Max"}
+            </Link>
           </Button>
         )}
       </CardContent>

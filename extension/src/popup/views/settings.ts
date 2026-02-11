@@ -67,7 +67,11 @@ async function loadProfile(container: HTMLElement) {
 
       ${userPlan === 'FREE' ? `
         <button class="btn btn-primary" id="btn-upgrade-plan" style="margin-top:8px;">
-          <span class="btn-label">\u2728 Upgrade Plan</span>
+          <span class="btn-label">Upgrade Plan</span>
+        </button>
+      ` : userPlan !== 'MAX' ? `
+        <button class="btn btn-secondary" id="btn-upgrade-plan" style="margin-top:8px;">
+          <span class="btn-label">Upgrade to ${userPlan === 'PRO' ? 'Max' : 'a Higher Plan'}</span>
         </button>
       ` : ''}
 

@@ -8,6 +8,14 @@ export const PLAN_LIMITS: Record<Plan, number> = {
   MAX: Infinity,
 };
 
+// ── Plan Hierarchy (for comparison) ──
+
+export const PLAN_ORDER: Record<Plan, number> = {
+  FREE: 0,
+  PRO: 1,
+  MAX: 2,
+};
+
 // ── Placeholder Definitions ──
 
 export const PLACEHOLDERS: Record<string, PlaceholderDef> = {

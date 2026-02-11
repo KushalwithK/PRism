@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { InstallGuideModal } from "./install-guide-modal";
 
 const DOWNLOAD_URL =
-  "https://drive.usercontent.google.com/download?id=1JFEn3fZ_DFDwPOvsvfQp1m9TvDFwkWdV&export=download&authuser=1&confirm=t&uuid=fe01c633-0a79-4d01-aced-ff1677ecdcd8&at=APcXIO2tWxI51ZyPAJ-Ir5CCRk3A:1770788383083";
+  process.env.NEXT_PUBLIC_EXTENSION_DOWNLOAD_URL || "";
 
 type DetectedBrowser = "chrome" | "firefox" | null;
 
