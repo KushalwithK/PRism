@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { Check, Crown, Loader2 } from "lucide-react";
+import { Check, CircleCheckBig, Loader2, Minus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { PLAN_ORDER, type UserProfile } from "@prism/shared";
+import { PLAN_ORDER, type UserProfile, type ProductPlanInfo } from "@prism/shared";
 import { PaymentSuccessModal } from "./payment-success-modal";
 
 interface PricingFeature {
@@ -26,59 +26,28 @@ interface PricingTier {
   badge?: string;
 }
 
-const tiers: PricingTier[] = [
-  {
-    name: "Free",
-    plan: "FREE",
-    price: "\u20B90",
-    priceValue: 0,
-    description: "For individual developers trying PRism",
-    features: [
-      { text: "5 generations per month", included: true },
-      { text: "All predefined templates", included: true },
-      { text: "GitHub & GitLab support", included: true },
-      { text: "Generation history", included: true },
-      { text: "Custom templates", included: false },
-      { text: "Priority support", included: false },
-    ],
-  },
-  {
-    name: "Pro",
-    plan: "PRO",
-    price: "\u20B9249",
-    priceValue: 249,
-    period: "mo",
-    description: "For developers who create PRs daily",
-    features: [
-      { text: "50 generations per month", included: true },
-      { text: "All predefined templates", included: true },
-      { text: "GitHub & GitLab support", included: true },
-      { text: "Generation history", included: true },
-      { text: "Custom templates", included: true },
-      { text: "Priority support", included: false },
-    ],
-    highlighted: true,
-    badge: "Most Popular",
-  },
-  {
-    name: "Max",
-    plan: "MAX",
-    price: "\u20B91,199",
-    priceValue: 1199,
-    period: "mo",
-    description: "For teams and power users",
-    features: [
-      { text: "Unlimited generations", included: true },
-      { text: "All predefined templates", included: true },
-      { text: "GitHub & GitLab support", included: true },
-      { text: "Generation history", included: true },
-      { text: "Custom templates", included: true },
-      { text: "Priority support", included: true },
-    ],
-  },
-];
+function formatPrice(currency: string, amount: number): string {
+  if (amount === 0) return `${currency}0`;
+  return `${currency}${amount.toLocaleString("en-IN")}`;
+}
+
+function mapPlanToTier(plan: ProductPlanInfo): PricingTier {
+  return {
+    name: plan.displayName,
+    plan: plan.plan as "FREE" | "PRO" | "MAX",
+    price: formatPrice(plan.currency, plan.monthlyPrice),
+    priceValue: plan.monthlyPrice,
+    period: plan.period ?? undefined,
+    description: plan.description,
+    features: plan.features,
+    highlighted: plan.highlighted,
+    badge: plan.badge ?? undefined,
+  };
+}
 
 export function PricingSection() {
+  const [tiers, setTiers] = useState<PricingTier[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
@@ -93,6 +62,14 @@ export function PricingSection() {
     user?.subscriptions.find((s) => s.productSlug === "prism")?.plan ?? null;
 
   useEffect(() => {
+    fetch("/api/billing/plans?productSlug=prism")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: ProductPlanInfo[]) => {
+        if (Array.isArray(data)) setTiers(data.map(mapPlanToTier));
+      })
+      .catch(() => {})
+      .finally(() => setLoadingPlans(false));
+
     fetch("/api/auth/profile")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -202,41 +179,69 @@ export function PricingSection() {
       </div>
 
       <div className="mt-12 grid gap-6 md:grid-cols-3">
-        {tiers.map((tier, i) => {
+        {loadingPlans
+          ? Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex flex-col rounded-xl border border-border/50 bg-card p-6 animate-pulse"
+              >
+                <div className="h-5 w-16 rounded bg-muted" />
+                <div className="mt-2 h-4 w-40 rounded bg-muted" />
+                <div className="mt-6 h-10 w-24 rounded bg-muted" />
+                <div className="mt-6 flex-1 space-y-3">
+                  {Array.from({ length: 6 }).map((_, j) => (
+                    <div key={j} className="h-4 w-full rounded bg-muted" />
+                  ))}
+                </div>
+                <div className="mt-6 h-10 w-full rounded bg-muted" />
+              </div>
+            ))
+          : tiers.map((tier, i) => {
           const isCurrent = isCurrentPlan(tier.plan);
           const isLoading = loadingPlan === tier.plan;
-
           const isLower = isLowerPlan(tier.plan);
+          const isHighlighted = !!tier.highlighted;
 
           return (
             <motion.div
               key={tier.name}
-              className={cn(
-                "relative flex flex-col rounded-xl border p-6",
-                isCurrent
-                  ? "border-primary bg-primary/5 shadow-lg shadow-primary/10 ring-2 ring-primary"
-                  : isLower
-                    ? "border-border/30 bg-card/60 opacity-60"
-                    : tier.highlighted
-                      ? "border-primary bg-card shadow-lg shadow-primary/10"
-                      : "border-border/50 bg-card"
-              )}
+              className="relative"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: i * 0.1 }}
             >
+              {/* Your Plan badge — outlined, calm, purple theme */}
               {isCurrent && (
-                <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2 gap-1">
-                  <Crown size={12} />
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-background px-3 py-1 text-xs font-semibold text-primary whitespace-nowrap z-10">
+                  <CircleCheckBig size={13} />
                   Your Plan
-                </Badge>
+                </div>
               )}
-              {!isCurrent && tier.badge && (
-                <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2">
-                  {tier.badge}
-                </Badge>
+
+              {/* Most Popular badge — sits on the border edge */}
+              {tier.badge && (
+                <div className="badge-shine absolute -top-3.5 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 whitespace-nowrap shadow-lg shadow-primary/30 z-10">
+                  <Sparkles size={13} className="text-primary-foreground" />
+                  <span className="text-xs font-bold text-primary-foreground">{tier.badge}</span>
+                </div>
               )}
+
+              {/* Rotating gradient border — rendered before card so card paints on top */}
+              {isHighlighted && (
+                <div className="pricing-border" aria-hidden="true" />
+              )}
+
+              <div
+                className={cn(
+                  "relative flex flex-col rounded-xl p-6 h-full",
+                  isHighlighted
+                    ? "bg-card pricing-glow"
+                    : isCurrent
+                      ? "border-2 border-dashed border-primary/50 bg-primary/5"
+                      : "border border-border/50 bg-card"
+                )}
+              >
 
               <h3 className="text-lg font-semibold">{tier.name}</h3>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -244,7 +249,7 @@ export function PricingSection() {
               </p>
 
               <div className="mt-6">
-                <span className="text-4xl font-bold">{tier.price}</span>
+                <span className={cn("text-4xl font-bold", isHighlighted && "text-primary")}>{tier.price}</span>
                 {tier.period && (
                   <span className="text-muted-foreground">/{tier.period}</span>
                 )}
@@ -253,19 +258,21 @@ export function PricingSection() {
               <ul className="mt-6 flex-1 space-y-3">
                 {tier.features.map((feature) => (
                   <li key={feature.text} className="flex items-start gap-2">
-                    <Check
-                      size={16}
-                      className={cn(
-                        "mt-0.5 shrink-0",
-                        feature.included
-                          ? "text-primary"
-                          : "text-muted-foreground/30"
-                      )}
-                    />
+                    {feature.included ? (
+                      <Check
+                        size={16}
+                        className="mt-0.5 shrink-0 text-primary"
+                      />
+                    ) : (
+                      <Minus
+                        size={16}
+                        className="mt-0.5 shrink-0 text-muted-foreground/30"
+                      />
+                    )}
                     <span
                       className={cn(
                         "text-sm",
-                        !feature.included && "text-muted-foreground/50"
+                        !feature.included && "text-muted-foreground/40"
                       )}
                     >
                       {feature.text}
@@ -275,7 +282,10 @@ export function PricingSection() {
               </ul>
 
               <Button
-                className="mt-6"
+                className={cn(
+                  "mt-6",
+                  isHighlighted && !isCurrent && !isLower && "shadow-md shadow-primary/20"
+                )}
                 variant={
                   isCurrent || isLower
                     ? "secondary"
@@ -295,6 +305,7 @@ export function PricingSection() {
                 {isLoading && <Loader2 size={14} className="mr-2 animate-spin" />}
                 {getCtaLabel(tier)}
               </Button>
+              </div>
             </motion.div>
           );
         })}

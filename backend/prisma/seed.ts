@@ -52,10 +52,79 @@ async function main() {
   // 3. Seed ProductPlans for PRism
   console.log('Seeding product plans...');
 
-  const plans: { plan: Plan; monthlyPrice: number; usageLimit: number }[] = [
-    { plan: 'FREE', monthlyPrice: 0, usageLimit: 5 },
-    { plan: 'PRO', monthlyPrice: 249, usageLimit: 50 },      // 900 = $9.00 in cents
-    { plan: 'MAX', monthlyPrice: 999, usageLimit: -1 },      // -1 = unlimited
+  const plans: {
+    plan: Plan;
+    monthlyPrice: number;
+    usageLimit: number;
+    displayName: string;
+    description: string;
+    currency: string;
+    period: string | null;
+    features: { text: string; included: boolean }[];
+    highlighted: boolean;
+    badge: string | null;
+    sortOrder: number;
+  }[] = [
+    {
+      plan: 'FREE',
+      monthlyPrice: 0,
+      usageLimit: 5,
+      displayName: 'Free',
+      description: 'For individual developers trying PRism',
+      currency: '₹',
+      period: null,
+      features: [
+        { text: '5 generations per month', included: true },
+        { text: 'All predefined templates', included: true },
+        { text: 'GitHub & GitLab support', included: true },
+        { text: 'Generation history', included: true },
+        { text: 'Custom templates', included: false },
+        { text: 'Priority support', included: false },
+      ],
+      highlighted: false,
+      badge: null,
+      sortOrder: 0,
+    },
+    {
+      plan: 'PRO',
+      monthlyPrice: 249,
+      usageLimit: 50,
+      displayName: 'Pro',
+      description: 'For developers who create PRs daily',
+      currency: '₹',
+      period: 'mo',
+      features: [
+        { text: '50 generations per month', included: true },
+        { text: 'All predefined templates', included: true },
+        { text: 'GitHub & GitLab support', included: true },
+        { text: 'Generation history', included: true },
+        { text: 'Custom templates', included: true },
+        { text: 'Priority support', included: false },
+      ],
+      highlighted: true,
+      badge: 'Most Popular',
+      sortOrder: 1,
+    },
+    {
+      plan: 'MAX',
+      monthlyPrice: 1199,
+      usageLimit: -1,
+      displayName: 'Max',
+      description: 'For teams and power users',
+      currency: '₹',
+      period: 'mo',
+      features: [
+        { text: 'Unlimited generations', included: true },
+        { text: 'All predefined templates', included: true },
+        { text: 'GitHub & GitLab support', included: true },
+        { text: 'Generation history', included: true },
+        { text: 'Custom templates', included: true },
+        { text: 'Priority support', included: true },
+      ],
+      highlighted: false,
+      badge: null,
+      sortOrder: 2,
+    },
   ];
 
   for (const p of plans) {
@@ -66,15 +135,31 @@ async function main() {
       update: {
         monthlyPrice: p.monthlyPrice,
         usageLimit: p.usageLimit,
+        displayName: p.displayName,
+        description: p.description,
+        currency: p.currency,
+        period: p.period,
+        features: p.features,
+        highlighted: p.highlighted,
+        badge: p.badge,
+        sortOrder: p.sortOrder,
       },
       create: {
         productId: prism.id,
         plan: p.plan,
         monthlyPrice: p.monthlyPrice,
         usageLimit: p.usageLimit,
+        displayName: p.displayName,
+        description: p.description,
+        currency: p.currency,
+        period: p.period,
+        features: p.features,
+        highlighted: p.highlighted,
+        badge: p.badge,
+        sortOrder: p.sortOrder,
       },
     });
-    console.log(`  ✓ ${prism.name} ${p.plan}: ${p.usageLimit === -1 ? 'unlimited' : p.usageLimit}/mo @ $${(p.monthlyPrice / 100).toFixed(2)}`);
+    console.log(`  ✓ ${prism.name} ${p.plan}: ${p.usageLimit === -1 ? 'unlimited' : p.usageLimit}/mo @ ₹${p.monthlyPrice}`);
   }
 
   // 4. Create subscriptions for existing users who don't have one yet

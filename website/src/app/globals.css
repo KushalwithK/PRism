@@ -124,3 +124,79 @@ html {
   animation: float 12s ease-in-out infinite;
 }
 
+/* ── Pricing Card Effects ── */
+
+/* Badge: light sweep that glides across */
+@keyframes badge-shine {
+  0% { left: -100%; }
+  20% { left: 100%; }
+  100% { left: 100%; }
+}
+
+.badge-shine {
+  overflow: hidden;
+}
+
+.badge-shine::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+  );
+  animation: badge-shine 3s ease-in-out infinite;
+}
+
+/* Rotating gradient border — a separate div behind the card */
+@property --border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes border-rotate {
+  0% { --border-angle: 0deg; }
+  100% { --border-angle: 360deg; }
+}
+
+.pricing-border {
+  position: absolute;
+  inset: -2px;
+  border-radius: calc(var(--radius-xl) + 2px);
+  background: conic-gradient(
+    from var(--border-angle),
+    oklch(0.55 0.30 285),
+    oklch(0.60 0.26 315),
+    oklch(0.72 0.24 260),
+    oklch(0.82 0.16 285),
+    oklch(0.60 0.26 315),
+    oklch(0.55 0.30 285)
+  );
+  animation: border-rotate 3s linear infinite;
+}
+
+/* Pulsing glow shadow on the highlighted card */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 15px oklch(0.65 0.25 285 / 0.20),
+      0 0 40px oklch(0.55 0.25 285 / 0.08);
+  }
+  50% {
+    box-shadow:
+      0 0 30px oklch(0.65 0.25 285 / 0.40),
+      0 0 80px oklch(0.55 0.25 285 / 0.12);
+  }
+}
+
+.pricing-glow {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+

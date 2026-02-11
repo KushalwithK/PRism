@@ -3,6 +3,7 @@ import type { ExtensionResponse, UserProfile, Template, CreateTemplateRequest, U
 import { SAMPLE_PLACEHOLDER_VALUES, PLACEHOLDERS, renderTemplate } from '@prism/shared';
 
 let currentTemplates: Template[] = [];
+let currentUserPlan: string = 'FREE';
 
 export function renderSettingsView(container: HTMLElement) {
   container.innerHTML = `
@@ -31,6 +32,7 @@ async function loadProfile(container: HTMLElement) {
     const initials = getInitials(user.name);
     const prismSub = user.subscriptions.find((s) => s.productSlug === 'prism');
     const userPlan = prismSub?.plan ?? 'FREE';
+    currentUserPlan = userPlan;
     const userUsageCount = prismSub?.usageCount ?? 0;
     const planLimit = prismSub?.usageLimit ?? 5;
     const isUnlimited = planLimit === -1;
@@ -94,7 +96,7 @@ async function loadProfile(container: HTMLElement) {
       <div style="margin-top:16px;">
         <div class="section-header">
           <span class="section-title" style="margin-bottom:0;">My Templates</span>
-          <button class="btn-new-template" id="btn-new-template">+ New</button>
+          <button class="btn-new-template" id="btn-new-template"${userPlan === 'FREE' ? ' disabled title="Requires Pro plan" style="opacity:0.5;cursor:not-allowed;"' : ''}>+ New</button>
         </div>
         <div id="my-templates-list"></div>
       </div>
@@ -158,6 +160,7 @@ async function loadProfile(container: HTMLElement) {
 
     // New template button
     document.getElementById('btn-new-template')!.addEventListener('click', () => {
+      if (currentUserPlan === 'FREE') return;
       showTemplateModal(null, container);
     });
   } catch (err) {

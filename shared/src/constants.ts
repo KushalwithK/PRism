@@ -140,6 +140,7 @@ export const API_PATHS = {
   BILLING_PORTAL: '/api/billing/portal',
   BILLING_WEBHOOK: '/api/billing/webhook',
   BILLING_SUBSCRIPTIONS: '/api/billing/subscriptions',
+  BILLING_PLANS: '/api/billing/plans',
 } as const;
 
 // ── Defaults ──

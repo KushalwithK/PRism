@@ -201,6 +201,27 @@ export interface ExtensionResponse<T = unknown> {
   error?: string;
 }
 
+// ── Pricing ──
+
+export interface PlanFeature {
+  text: string;
+  included: boolean;
+}
+
+export interface ProductPlanInfo {
+  plan: Plan;
+  displayName: string;
+  description: string;
+  monthlyPrice: number;
+  currency: string;
+  period: string | null;
+  features: PlanFeature[];
+  highlighted: boolean;
+  badge: string | null;
+  usageLimit: number;
+  sortOrder: number;
+}
+
 // ── API Error ──
 
 export interface ApiError {

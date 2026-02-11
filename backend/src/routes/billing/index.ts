@@ -3,7 +3,7 @@ import Razorpay from 'razorpay';
 import { createHmac } from 'crypto';
 import { config } from '../../config.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
-import type { Plan } from '@prism/shared';
+import type { Plan, PlanFeature } from '@prism/shared';
 
 let razorpay: Razorpay | null = null;
 
@@ -21,6 +21,43 @@ function getRazorpay(): Razorpay {
 }
 
 export default async function billingRoutes(fastify: FastifyInstance) {
+  // GET /api/billing/plans — public endpoint for pricing data
+  fastify.get<{ Querystring: { productSlug: string } }>('/plans', {
+    schema: {
+      querystring: {
+        type: 'object',
+        required: ['productSlug'],
+        properties: {
+          productSlug: { type: 'string' },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const product = await fastify.prisma.product.findUnique({
+      where: { slug: request.query.productSlug },
+    });
+    if (!product) throw new NotFoundError('Product not found');
+
+    const plans = await fastify.prisma.productPlan.findMany({
+      where: { productId: product.id },
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    return reply.send(plans.map((p) => ({
+      plan: p.plan,
+      displayName: p.displayName,
+      description: p.description,
+      monthlyPrice: p.monthlyPrice,
+      currency: p.currency,
+      period: p.period,
+      features: p.features as unknown as PlanFeature[],
+      highlighted: p.highlighted,
+      badge: p.badge,
+      usageLimit: p.usageLimit,
+      sortOrder: p.sortOrder,
+    })));
+  });
+
   // POST /api/billing/checkout — create Razorpay subscription
   fastify.post<{
     Body: { productSlug: string; plan: string };

@@ -60,6 +60,14 @@ model ProductPlan {
   razorpayPlanId  String?
   monthlyPrice    Int      @default(0)
   usageLimit      Int
+  displayName     String   @default("")
+  description     String   @default("")
+  currency        String   @default("₹")
+  period          String?
+  features        Json     @default("[]")
+  highlighted     Boolean  @default(false)
+  badge           String?
+  sortOrder       Int      @default(0)
 
   product         Product  @relation(fields: [productId], references: [id])
 

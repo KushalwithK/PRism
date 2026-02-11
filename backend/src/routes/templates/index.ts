@@ -2,6 +2,15 @@ import type { FastifyInstance } from 'fastify';
 import { NotFoundError, ForbiddenError, ValidationError } from '../../utils/errors.js';
 import type { CreateTemplateRequest, UpdateTemplateRequest } from '@prism/shared';
 
+async function requirePaidPlan(fastify: FastifyInstance, userId: string) {
+  const sub = await fastify.prisma.subscription.findFirst({
+    where: { userId, product: { slug: 'prism' } },
+  });
+  if (!sub || sub.plan === 'FREE') {
+    throw new ForbiddenError('Custom templates require a paid plan');
+  }
+}
+
 export default async function templateRoutes(fastify: FastifyInstance) {
   // All routes require authentication
   fastify.addHook('preHandler', fastify.authenticate);
@@ -56,6 +65,7 @@ export default async function templateRoutes(fastify: FastifyInstance) {
       },
     },
   }, async (request, reply) => {
+    await requirePaidPlan(fastify, request.userId);
     const { name, description = '', body } = request.body;
 
     const template = await fastify.prisma.template.create({
@@ -84,6 +94,7 @@ export default async function templateRoutes(fastify: FastifyInstance) {
       },
     },
   }, async (request, reply) => {
+    await requirePaidPlan(fastify, request.userId);
     const template = await fastify.prisma.template.findUnique({
       where: { id: request.params.id },
     });
@@ -110,6 +121,7 @@ export default async function templateRoutes(fastify: FastifyInstance) {
 
   // DELETE /api/templates/:id
   fastify.delete<{ Params: { id: string } }>('/:id', async (request, reply) => {
+    await requirePaidPlan(fastify, request.userId);
     const template = await fastify.prisma.template.findUnique({
       where: { id: request.params.id },
     });

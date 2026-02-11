@@ -81,6 +81,10 @@ export default function TemplatesPage() {
   const customTemplates = templates.filter((t) => !t.isPredefined);
   const predefinedTemplates = templates.filter((t) => t.isPredefined);
 
+  const userPlan =
+    user?.subscriptions.find((s) => s.productSlug === "prism")?.plan ?? "FREE";
+  const isFree = userPlan === "FREE";
+
   // Effective default: explicit user choice > fallback to "Standard" predefined
   const explicitDefaultId = localDefaultId ?? user?.defaultTemplateId ?? null;
   const effectiveDefaultId =
@@ -89,6 +93,7 @@ export default function TemplatesPage() {
     null;
 
   const openCreate = () => {
+    if (isFree) return;
     setEditing({ name: "", description: "", body: "" });
     setError(null);
     setShowPreview(false);
@@ -215,10 +220,17 @@ export default function TemplatesPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">Your Templates</h2>
-            <Button size="sm" variant="outline" onClick={openCreate}>
-              <Plus size={16} className="mr-1.5" />
-              Create Template
-            </Button>
+            <span title={isFree ? "Requires Pro plan" : undefined}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={openCreate}
+                disabled={isFree}
+              >
+                <Plus size={16} className="mr-1.5" />
+                Create Template
+              </Button>
+            </span>
           </div>
 
           {loading ? (
