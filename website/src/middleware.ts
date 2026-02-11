@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getPublicOrigin } from "@/lib/url";
 
 const PROTECTED_PATHS = ["/dashboard"];
 const AUTH_PATHS = ["/login", "/register"];
@@ -23,9 +24,11 @@ export async function middleware(request: NextRequest) {
   const isProtected = PROTECTED_PATHS.some((p) => pathname.startsWith(p));
   const isAuthPage = AUTH_PATHS.some((p) => pathname.startsWith(p));
 
+  const origin = getPublicOrigin(request);
+
   // Redirect logged-in users away from auth pages
   if (isAuthPage && accessToken && !isTokenExpired(accessToken)) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/dashboard", origin));
   }
 
   if (!isProtected) {
@@ -73,7 +76,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // No valid tokens — redirect to login
-  const loginUrl = new URL("/login", request.url);
+  const loginUrl = new URL("/login", origin);
   loginUrl.searchParams.set("redirect", pathname);
   const response = NextResponse.redirect(loginUrl);
   response.cookies.set("access_token", "", { maxAge: 0, path: "/" });
