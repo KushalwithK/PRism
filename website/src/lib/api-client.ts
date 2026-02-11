@@ -11,9 +11,13 @@ export async function apiFetch<T>(
   const { accessToken, headers: customHeaders, ...rest } = options;
 
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     ...((customHeaders as Record<string, string>) || {}),
   };
+
+  // Only set Content-Type for requests that have a body
+  if (rest.body) {
+    headers["Content-Type"] = headers["Content-Type"] || "application/json";
+  }
 
   if (accessToken) {
     headers["Authorization"] = `Bearer ${accessToken}`;

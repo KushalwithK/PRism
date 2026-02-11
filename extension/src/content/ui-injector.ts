@@ -44,6 +44,12 @@ const clockIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" s
 
 const previewIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
 
+const repoIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${COLORS.textMuted}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65S8.93 17.38 9 18v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>`;
+
+const arrowIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${COLORS.textMuted}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`;
+
+const checkIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${COLORS.primary}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+
 // ── Button Styles ──
 
 const baseStyle = `
@@ -97,27 +103,44 @@ const shadowStyles = `
     to { opacity: 1; transform: scale(1); }
   }
 
-  @keyframes prism-pulse-glow {
-    0%, 100% { transform: translate(-50%,-50%) scale(1); filter: drop-shadow(0 0 4px rgba(139,92,246,0.3)); }
-    50% { transform: translate(-50%,-50%) scale(1.06); filter: drop-shadow(0 0 10px rgba(139,92,246,0.5)); }
-  }
-
-  @keyframes prism-ring-rotate {
+  @keyframes prism-orbit-spin {
     to { transform: rotate(360deg); }
   }
 
-  @keyframes prism-ring-rotate-reverse {
+  @keyframes prism-orbit-spin-reverse {
     to { transform: rotate(-360deg); }
   }
 
-  @keyframes prism-status-in {
-    from { opacity: 0; transform: translate(-50%, 6px); }
-    to { opacity: 1; transform: translate(-50%, 0); }
+  @keyframes prism-core-pulse {
+    0%, 100% { box-shadow: 0 0 25px 8px rgba(139,92,246,0.12), 0 0 50px 16px rgba(139,92,246,0.05); }
+    50% { box-shadow: 0 0 40px 14px rgba(139,92,246,0.22), 0 0 80px 28px rgba(139,92,246,0.08); }
   }
 
-  @keyframes prism-status-out {
-    from { opacity: 1; transform: translate(-50%, 0); }
-    to { opacity: 0; transform: translate(-50%, -6px); }
+  @keyframes prism-core-breathe {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(139,92,246,0.3)); }
+    50% { transform: scale(1.06); filter: drop-shadow(0 0 16px rgba(139,92,246,0.5)); }
+  }
+
+  @keyframes prism-wave {
+    0% { transform: translate(-50%,-50%) scale(0.3); opacity: 0.5; }
+    100% { transform: translate(-50%,-50%) scale(2.8); opacity: 0; }
+  }
+
+  @keyframes prism-particle {
+    0% { transform: translateY(0); opacity: 0; }
+    15% { opacity: 0.6; }
+    85% { opacity: 0.35; }
+    100% { transform: translateY(-200px); opacity: 0; }
+  }
+
+  @keyframes prism-ambient {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.7; }
+  }
+
+  @keyframes prism-dot-pulse {
+    0%, 100% { box-shadow: 0 0 3px 1px rgba(139,92,246,0.35); }
+    50% { box-shadow: 0 0 8px 3px rgba(139,92,246,0.65); }
   }
 
   @keyframes prism-progress-sweep {
@@ -129,6 +152,16 @@ const shadowStyles = `
   @keyframes prism-section-reveal {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes prism-check-appear {
+    from { transform: scale(0) rotate(-45deg); opacity: 0; }
+    to { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+
+  @keyframes prism-connector-fill {
+    from { width: 0%; }
+    to { width: 100%; }
   }
 `;
 
@@ -334,6 +367,7 @@ function closeModal(ctx: ModalContext) {
 async function renderPreGenerate(ctx: ModalContext, errorMsgOrCache?: string | PreGenData) {
   ctx.body.innerHTML = '';
   ctx.footer.innerHTML = '';
+  ctx.body.style.cssText = 'flex:1;overflow-y:auto;padding:20px;';
 
   const cached = typeof errorMsgOrCache === 'object' ? errorMsgOrCache : undefined;
   const errorMsg = typeof errorMsgOrCache === 'string' ? errorMsgOrCache : cached?.errorMsg;
@@ -753,159 +787,428 @@ function renderHistoryPreview(ctx: ModalContext, generation: Generation, cachedD
 async function renderLoading(ctx: ModalContext, additionalPrompt?: string) {
   ctx.body.innerHTML = '';
   ctx.footer.innerHTML = '';
-  ctx.body.style.position = 'relative';
+  ctx.body.style.cssText = 'flex:1;display:flex;flex-direction:column;padding:0;position:relative;overflow:hidden;';
 
-  // Track all timers for cleanup
   const timers: ReturnType<typeof setTimeout>[] = [];
   let elapsedInterval: ReturnType<typeof setInterval> | null = null;
 
-  // ── Progress bar ──
-  const progressBarWrap = document.createElement('div');
-  progressBarWrap.style.cssText = `position:absolute;top:0;left:0;width:100%;height:2px;overflow:hidden;`;
-
+  // ── Progress bar (absolute) ──
+  const progressWrap = document.createElement('div');
+  progressWrap.style.cssText = `position:absolute;top:0;left:0;width:100%;height:2px;overflow:hidden;z-index:2;`;
   const progressFill = document.createElement('div');
   progressFill.style.cssText = `
     position:absolute;top:0;height:100%;
     background:linear-gradient(90deg, transparent, ${COLORS.primary}, transparent);
     animation: prism-progress-sweep 2s ease-in-out infinite;
   `;
-  progressBarWrap.appendChild(progressFill);
-  ctx.body.appendChild(progressBarWrap);
+  progressWrap.appendChild(progressFill);
+  ctx.body.appendChild(progressWrap);
 
-  // ── Central area ──
-  const centralArea = document.createElement('div');
-  centralArea.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding-top:15vh;';
+  // ── Floating particles (absolute) ──
+  const particleField = document.createElement('div');
+  particleField.style.cssText = `position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;`;
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    const x = 15 + Math.random() * 70;
+    const size = 1.5 + Math.random() * 2;
+    const dur = 7 + Math.random() * 8;
+    const delay = -(Math.random() * dur);
+    p.style.cssText = `
+      position:absolute;bottom:10%;left:${x}%;
+      width:${size}px;height:${size}px;border-radius:50%;
+      background:${COLORS.primary};
+      animation:prism-particle ${dur.toFixed(1)}s ease-in-out infinite;
+      animation-delay:${delay.toFixed(1)}s;
+    `;
+    particleField.appendChild(p);
+  }
+  ctx.body.appendChild(particleField);
 
-  // Orb container
-  const orbContainer = document.createElement('div');
-  orbContainer.style.cssText = 'position:relative;width:64px;height:64px;margin-bottom:20px;';
-
-  // Ring 1 — outer, clockwise
-  const ring1 = document.createElement('div');
-  ring1.style.cssText = `
-    position:absolute;inset:0;border-radius:50%;
-    border:1.5px solid rgba(139,92,246,0.25);
-    border-top-color:rgba(139,92,246,0.7);
-    animation: prism-ring-rotate 3s linear infinite;
+  // ── Content column (flex:1, 5 zones) ──
+  const contentCol = document.createElement('div');
+  contentCol.style.cssText = `
+    display:flex;flex-direction:column;flex:1;
+    position:relative;z-index:1;min-height:0;
   `;
-  orbContainer.appendChild(ring1);
 
-  // Ring 2 — inner, counter-clockwise
-  const ring2 = document.createElement('div');
-  ring2.style.cssText = `
-    position:absolute;inset:6px;border-radius:50%;
-    border:1px dashed rgba(139,92,246,0.15);
-    border-top-color:rgba(139,92,246,0.4);
-    animation: prism-ring-rotate-reverse 5s linear infinite;
+  // ── Zone 1: Metadata context bar ──
+  const metadata = ctx.adapter.getMetadata();
+  const hasMetadata = metadata.repoUrl || metadata.sourceBranch || metadata.targetBranch;
+
+  if (hasMetadata) {
+    const metaBar = document.createElement('div');
+    metaBar.style.cssText = `
+      flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:10px;
+      padding:12px 20px;
+      background:rgba(139,92,246,0.03);
+      border-bottom:1px solid rgba(139,92,246,0.06);
+      font-size:12px;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+      color:${COLORS.textMuted};
+    `;
+
+    // Extract short repo name from URL
+    let repoName = metadata.repoUrl;
+    try {
+      const urlObj = new URL(metadata.repoUrl);
+      repoName = urlObj.pathname.replace(/^\//, '').replace(/\.git$/, '');
+    } catch { /* use full url */ }
+
+    if (repoName) {
+      const repoSpan = document.createElement('span');
+      repoSpan.style.cssText = `display:inline-flex;align-items:center;gap:5px;color:${COLORS.textSecondary};`;
+      repoSpan.innerHTML = `${repoIcon}<span>${escapeHtml(repoName)}</span>`;
+      metaBar.appendChild(repoSpan);
+    }
+
+    if (metadata.sourceBranch && metadata.targetBranch) {
+      const branchFlow = document.createElement('span');
+      branchFlow.style.cssText = `display:inline-flex;align-items:center;gap:6px;`;
+      branchFlow.innerHTML = `
+        <span style="color:${COLORS.primary};font-weight:500;">${escapeHtml(metadata.sourceBranch)}</span>
+        ${arrowIcon}
+        <span style="color:${COLORS.textSecondary};">${escapeHtml(metadata.targetBranch)}</span>
+      `;
+      metaBar.appendChild(branchFlow);
+    }
+
+    contentCol.appendChild(metaBar);
+  }
+
+  // ── Zone 2: Enlarged orbit scene (flex:1 centered) ──
+  const orbitZone = document.createElement('div');
+  orbitZone.style.cssText = `
+    flex:1;display:flex;align-items:center;justify-content:center;
+    position:relative;min-height:0;
   `;
-  orbContainer.appendChild(ring2);
 
-  // Sparkle icon — centered, pulsing
-  const sparkle = document.createElement('div');
-  sparkle.style.cssText = `
+  // Ambient glow
+  const ambient = document.createElement('div');
+  ambient.style.cssText = `
+    position:absolute;width:400px;height:400px;
+    top:50%;left:50%;transform:translate(-50%,-50%);
+    background:radial-gradient(circle, rgba(139,92,246,0.1) 0%, rgba(139,92,246,0.02) 50%, transparent 70%);
+    animation:prism-ambient 6s ease-in-out infinite;
+    pointer-events:none;
+  `;
+  orbitZone.appendChild(ambient);
+
+  // Orbit scene (enlarged to 280×280)
+  const orbitScene = document.createElement('div');
+  orbitScene.style.cssText = `position:relative;width:280px;height:280px;`;
+
+  // Pulse waves (expanding rings from center)
+  for (let i = 0; i < 3; i++) {
+    const wave = document.createElement('div');
+    wave.style.cssText = `
+      position:absolute;top:50%;left:50%;
+      width:80px;height:80px;border-radius:50%;
+      border:1px solid rgba(139,92,246,0.2);
+      transform:translate(-50%,-50%);opacity:0;
+      animation:prism-wave 4.5s ease-out ${i * 1.5}s infinite;
+      pointer-events:none;
+    `;
+    orbitScene.appendChild(wave);
+  }
+
+  // 3D-style elliptical orbits (enlarged)
+  const orbits = [
+    { size: 250, scaleY: 0.30, rotate: 0,   dur: '8s',  reverse: false, dotSize: 6, counterScale: 3.33 },
+    { size: 200, scaleY: 0.35, rotate: 55,  dur: '6s',  reverse: true,  dotSize: 5, counterScale: 2.86 },
+    { size: 150, scaleY: 0.25, rotate: -30, dur: '10s', reverse: false, dotSize: 5, counterScale: 4.00 },
+  ];
+
+  for (const o of orbits) {
+    const tilt = document.createElement('div');
+    tilt.style.cssText = `
+      position:absolute;top:50%;left:50%;
+      transform:translate(-50%,-50%) rotate(${o.rotate}deg) scaleY(${o.scaleY});
+      pointer-events:none;
+    `;
+
+    const spin = document.createElement('div');
+    spin.style.cssText = `
+      width:${o.size}px;height:${o.size}px;border-radius:50%;
+      border:1px solid rgba(139,92,246,0.06);
+      animation:prism-orbit-spin${o.reverse ? '-reverse' : ''} ${o.dur} linear infinite;
+      position:relative;
+    `;
+
+    const halfDot = o.dotSize / 2;
+    const dot = document.createElement('div');
+    dot.style.cssText = `
+      position:absolute;top:${-halfDot}px;left:calc(50% - ${halfDot}px);
+      width:${o.dotSize}px;height:${o.dotSize}px;border-radius:50%;
+      background:${COLORS.primary};
+      transform:scaleY(${o.counterScale});
+      animation:prism-dot-pulse 2s ease-in-out infinite;
+    `;
+
+    spin.appendChild(dot);
+    tilt.appendChild(spin);
+    orbitScene.appendChild(tilt);
+  }
+
+  // Core — conic gradient ring (enlarged to 68px)
+  const coreOuter = document.createElement('div');
+  coreOuter.style.cssText = `
     position:absolute;top:50%;left:50%;
-    animation: prism-pulse-glow 2.5s ease-in-out infinite;
+    width:68px;height:68px;
+    margin-top:-34px;margin-left:-34px;
+    border-radius:50%;
+    background:conic-gradient(from 0deg, rgba(139,92,246,0.03), rgba(139,92,246,0.25), rgba(139,92,246,0.03), rgba(139,92,246,0.1), rgba(139,92,246,0.03));
+    animation:prism-core-pulse 4s ease-in-out infinite;
   `;
-  sparkle.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="${COLORS.primary}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M6 9v12"/></svg>`;
-  orbContainer.appendChild(sparkle);
 
-  centralArea.appendChild(orbContainer);
-
-  // ── Status text area ──
-  const statusArea = document.createElement('div');
-  statusArea.style.cssText = 'position:relative;width:240px;height:20px;overflow:hidden;margin-bottom:8px;';
-
-  const statusText = document.createElement('div');
-  statusText.style.cssText = `
-    position:absolute;left:50%;transform:translate(-50%,0);
-    font-size:14px;color:${COLORS.textSecondary};font-weight:500;white-space:nowrap;
-    animation: prism-status-in 0.3s ease-out;
+  // Core inner (enlarged to 50px)
+  const coreInner = document.createElement('div');
+  coreInner.style.cssText = `
+    position:absolute;top:50%;left:50%;
+    width:50px;height:50px;
+    margin-top:-25px;margin-left:-25px;
+    border-radius:50%;
+    background:${COLORS.bg};
+    display:flex;align-items:center;justify-content:center;
+    animation:prism-core-breathe 3s ease-in-out infinite;
   `;
-  statusText.textContent = LOADING_PHASES[0].text;
-  statusArea.appendChild(statusText);
+  coreInner.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${COLORS.primary}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M6 9v12"/></svg>`;
 
-  centralArea.appendChild(statusArea);
+  coreOuter.appendChild(coreInner);
+  orbitScene.appendChild(coreOuter);
+  orbitZone.appendChild(orbitScene);
+  contentCol.appendChild(orbitZone);
 
-  // ── Elapsed timer ──
-  const elapsedTime = document.createElement('div');
-  elapsedTime.style.cssText = `font-size:11px;color:${COLORS.textMuted};font-variant-numeric:tabular-nums;min-height:16px;`;
-  centralArea.appendChild(elapsedTime);
+  // ── Zone 3: Compact status row ──
+  const statusRow = document.createElement('div');
+  statusRow.style.cssText = `
+    flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:12px;
+    padding:6px 20px 10px;
+  `;
 
-  ctx.body.appendChild(centralArea);
+  const statusTextEl = document.createElement('div');
+  statusTextEl.style.cssText = `
+    font-size:15px;font-weight:600;color:${COLORS.textSecondary};
+    white-space:nowrap;letter-spacing:0.02em;
+    transition:opacity 0.2s ease, transform 0.2s ease;
+  `;
+  statusTextEl.textContent = LOADING_PHASES[0].text;
 
-  // ── Section skeletons ──
+  const sepDot = document.createElement('div');
+  sepDot.style.cssText = `width:4px;height:4px;border-radius:50%;background:${COLORS.textMuted};flex-shrink:0;`;
+
+  const elapsedEl = document.createElement('div');
+  elapsedEl.style.cssText = `
+    font-size:12px;color:${COLORS.textMuted};
+    font-variant-numeric:tabular-nums;min-width:24px;
+  `;
+
+  statusRow.appendChild(statusTextEl);
+  statusRow.appendChild(sepDot);
+  statusRow.appendChild(elapsedEl);
+  contentCol.appendChild(statusRow);
+
+  // ── Zone 4: Horizontal step timeline ──
+  const stepLabels = ['Extract', 'Analyze', 'Generate', 'Finalize'];
+  const timelineWrap = document.createElement('div');
+  timelineWrap.style.cssText = `
+    flex-shrink:0;padding:8px 40px 16px;
+  `;
+
+  const timelineRow = document.createElement('div');
+  timelineRow.style.cssText = `
+    display:flex;align-items:center;
+  `;
+
+  const stepCircles: HTMLElement[] = [];
+  const connectorFills: HTMLElement[] = [];
+
+  for (let i = 0; i < stepLabels.length; i++) {
+    // Step column (circle + label)
+    const stepCol = document.createElement('div');
+    stepCol.style.cssText = `display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;`;
+
+    const circle = document.createElement('div');
+    circle.style.cssText = `
+      width:28px;height:28px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      transition:all 0.4s ease;
+      ${i === 0
+        ? `background:rgba(139,92,246,0.15);border:1.5px solid ${COLORS.primary};box-shadow:0 0 10px rgba(139,92,246,0.25);`
+        : `background:transparent;border:1.5px solid ${COLORS.border};`}
+    `;
+
+    // Inner pulsing dot for active state (only step 0 starts active)
+    if (i === 0) {
+      const innerDot = document.createElement('div');
+      innerDot.style.cssText = `
+        width:8px;height:8px;border-radius:50%;
+        background:${COLORS.primary};
+        animation:prism-dot-pulse 1.5s ease-in-out infinite;
+      `;
+      innerDot.className = 'step-inner';
+      circle.appendChild(innerDot);
+    }
+
+    const label = document.createElement('div');
+    label.style.cssText = `
+      font-size:10px;font-weight:500;letter-spacing:0.03em;
+      transition:color 0.3s ease;
+      ${i === 0 ? `color:${COLORS.primary};` : `color:${COLORS.textMuted};`}
+    `;
+    label.textContent = stepLabels[i];
+
+    stepCircles.push(circle);
+    stepCol.appendChild(circle);
+    stepCol.appendChild(label);
+    timelineRow.appendChild(stepCol);
+
+    // Connector between steps
+    if (i < stepLabels.length - 1) {
+      const connector = document.createElement('div');
+      connector.style.cssText = `
+        flex:1;height:2px;background:${COLORS.border};
+        position:relative;overflow:hidden;margin:0 4px;
+        margin-bottom:22px;
+      `;
+      const fill = document.createElement('div');
+      fill.style.cssText = `
+        position:absolute;top:0;left:0;height:100%;width:0%;
+        background:${COLORS.primary};
+        transition:width 0.6s ease;
+      `;
+      connector.appendChild(fill);
+      connectorFills.push(fill);
+      timelineRow.appendChild(connector);
+    }
+  }
+
+  timelineWrap.appendChild(timelineRow);
+  contentCol.appendChild(timelineWrap);
+
+  // Step activation function
+  const activateStep = (index: number) => {
+    for (let s = 0; s < stepCircles.length; s++) {
+      const circle = stepCircles[s];
+      const label = circle.nextElementSibling as HTMLElement | null;
+
+      if (s < index) {
+        // Completed
+        circle.style.cssText = `
+          width:28px;height:28px;border-radius:50%;
+          display:flex;align-items:center;justify-content:center;
+          transition:all 0.4s ease;
+          background:rgba(139,92,246,0.1);border:1.5px solid rgba(139,92,246,0.5);
+        `;
+        circle.innerHTML = `<div style="animation:prism-check-appear 0.3s ease-out;">${checkIcon}</div>`;
+        if (label) label.style.color = COLORS.textSecondary;
+      } else if (s === index) {
+        // Active
+        circle.style.cssText = `
+          width:28px;height:28px;border-radius:50%;
+          display:flex;align-items:center;justify-content:center;
+          transition:all 0.4s ease;
+          background:rgba(139,92,246,0.15);border:1.5px solid ${COLORS.primary};box-shadow:0 0 10px rgba(139,92,246,0.25);
+        `;
+        circle.innerHTML = `<div style="width:8px;height:8px;border-radius:50%;background:${COLORS.primary};animation:prism-dot-pulse 1.5s ease-in-out infinite;"></div>`;
+        if (label) label.style.color = COLORS.primary;
+      }
+      // Pending steps stay unchanged
+    }
+
+    // Fill connectors up to current step
+    for (let c = 0; c < connectorFills.length; c++) {
+      if (c < index) {
+        connectorFills[c].style.width = '100%';
+      }
+    }
+  };
+
+  // ── Zone 5: Horizontal section skeletons ──
   const sectionPreview = document.createElement('div');
-  sectionPreview.style.cssText = 'display:flex;flex-direction:column;gap:20px;max-width:480px;margin:40px auto 0;width:100%;';
+  sectionPreview.style.cssText = `
+    flex-shrink:0;display:flex;gap:12px;
+    padding:0 20px 20px;
+    position:relative;z-index:1;
+  `;
 
   const sectionDefs = [
     { name: 'Summary', lines: ['55%', '80%'], revealAt: 0 },
-    { name: 'Changes', lines: ['70%', '90%', '50%'], revealAt: 2500 },
+    { name: 'Changes', lines: ['70%', '90%'], revealAt: 2500 },
     { name: 'Details', lines: ['60%', '85%'], revealAt: 5500 },
   ];
 
   const sectionEls: HTMLElement[] = [];
   for (const sec of sectionDefs) {
-    const sectionBlock = document.createElement('div');
-    sectionBlock.style.cssText = sec.revealAt === 0
-      ? 'animation: prism-section-reveal 0.4s ease-out;'
-      : 'opacity:0;';
-
-    const sectionHeader = document.createElement('div');
-    sectionHeader.style.cssText = `
-      font-size:11px;font-weight:600;text-transform:uppercase;
-      letter-spacing:0.05em;color:${COLORS.textMuted};margin-bottom:8px;
+    const block = document.createElement('div');
+    block.style.cssText = `
+      flex:1;padding:12px 14px;border-radius:8px;
+      background:rgba(139,92,246,0.02);
+      border:1px solid rgba(139,92,246,0.06);
+      ${sec.revealAt === 0 ? 'animation:prism-section-reveal 0.4s ease-out;' : 'opacity:0;'}
     `;
-    sectionHeader.textContent = sec.name;
-    sectionBlock.appendChild(sectionHeader);
+
+    const header = document.createElement('div');
+    header.style.cssText = `
+      font-size:10px;font-weight:600;text-transform:uppercase;
+      letter-spacing:0.08em;color:${COLORS.textMuted};margin-bottom:8px;
+    `;
+    header.textContent = sec.name;
+    block.appendChild(header);
 
     for (const w of sec.lines) {
       const line = document.createElement('div');
       line.style.cssText = `
-        height:10px;width:${w};border-radius:3px;margin-bottom:6px;
+        height:8px;width:${w};border-radius:4px;margin-bottom:5px;
         background:linear-gradient(90deg, ${COLORS.progressBg} 25%, ${COLORS.bgTertiary} 50%, ${COLORS.progressBg} 75%);
         background-size:200% 100%;
-        animation: prism-shimmer 1.5s ease-in-out infinite;
+        animation:prism-shimmer 1.5s ease-in-out infinite;
       `;
-      sectionBlock.appendChild(line);
+      block.appendChild(line);
     }
 
-    sectionEls.push(sectionBlock);
-    sectionPreview.appendChild(sectionBlock);
+    sectionEls.push(block);
+    sectionPreview.appendChild(block);
   }
-  ctx.body.appendChild(sectionPreview);
+  contentCol.appendChild(sectionPreview);
+  ctx.body.appendChild(contentCol);
 
   // ── Schedule section reveals ──
   for (let i = 0; i < sectionDefs.length; i++) {
     if (sectionDefs[i].revealAt > 0) {
-      const t = setTimeout(() => {
-        sectionEls[i].style.cssText = 'animation: prism-section-reveal 0.4s ease-out forwards;';
-      }, sectionDefs[i].revealAt);
-      timers.push(t);
+      timers.push(setTimeout(() => {
+        sectionEls[i].style.opacity = '1';
+        sectionEls[i].style.animation = 'prism-section-reveal 0.4s ease-out forwards';
+      }, sectionDefs[i].revealAt));
     }
   }
 
-  // ── Schedule status text transitions ──
+  // ── Schedule status text transitions + step activations ──
   for (let i = 1; i < LOADING_PHASES.length; i++) {
-    const t = setTimeout(() => {
-      // Fade out current
-      statusText.style.animation = 'prism-status-out 0.2s ease-in forwards';
-      const swapTimer = setTimeout(() => {
-        statusText.textContent = LOADING_PHASES[i].text;
-        statusText.style.animation = 'prism-status-in 0.3s ease-out forwards';
-      }, 200);
-      timers.push(swapTimer);
-    }, LOADING_PHASES[i].delay);
-    timers.push(t);
+    timers.push(setTimeout(() => {
+      // Fade out — slide up
+      statusTextEl.style.opacity = '0';
+      statusTextEl.style.transform = 'translateY(-4px)';
+
+      timers.push(setTimeout(() => {
+        statusTextEl.textContent = LOADING_PHASES[i].text;
+        statusTextEl.style.transform = 'translateY(4px)';
+        void statusTextEl.offsetHeight;
+        statusTextEl.style.opacity = '1';
+        statusTextEl.style.transform = 'translateY(0)';
+
+        // Activate step in timeline
+        activateStep(i);
+      }, 200));
+    }, LOADING_PHASES[i].delay));
   }
 
-  // ── Elapsed time counter ──
+  // ── Elapsed timer ──
   let elapsed = 0;
   elapsedInterval = setInterval(() => {
     elapsed++;
-    elapsedTime.textContent = `${elapsed}s`;
+    elapsedEl.textContent = `${elapsed}s`;
   }, 1000);
 
-  // ── Cleanup function ──
+  // ── Cleanup ──
   const cleanup = () => {
     for (const t of timers) clearTimeout(t);
     if (elapsedInterval) clearInterval(elapsedInterval);
@@ -962,6 +1265,7 @@ async function renderLoading(ctx: ModalContext, additionalPrompt?: string) {
 function renderPostGenerate(ctx: ModalContext, result: GenerateResponse) {
   ctx.body.innerHTML = '';
   ctx.footer.innerHTML = '';
+  ctx.body.style.cssText = 'flex:1;overflow-y:auto;padding:20px;';
 
   // Editable title
   const titleLabel = document.createElement('label');

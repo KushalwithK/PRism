@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import rawBodyPlugin from 'fastify-raw-body';
 import { config } from './config.js';
 
 // Plugins
@@ -29,6 +30,12 @@ export async function buildApp() {
   await app.register(errorHandlerPlugin);
   await app.register(prismaPlugin);
   await app.register(authPlugin);
+  await app.register(rawBodyPlugin, {
+    field: 'rawBody',
+    global: false,
+    encoding: 'utf8',
+    runFirst: true,
+  });
 
   // Register routes
   await app.register(authRoutes, { prefix: '/api/auth' });

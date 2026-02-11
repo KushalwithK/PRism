@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { UserProfile } from "@prism/shared";
+import { PaymentSuccessModal } from "./payment-success-modal";
 
 interface PricingFeature {
   text: string;
@@ -81,6 +82,12 @@ export function PricingSection() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [successModal, setSuccessModal] = useState<{
+    open: boolean;
+    data: VerifyResponse | null;
+    planName: string;
+    planPrice: string;
+  } | null>(null);
 
   const currentPlan =
     user?.subscriptions.find((s) => s.productSlug === "prism")?.plan ?? null;
@@ -95,19 +102,19 @@ export function PricingSection() {
       .finally(() => setCheckingAuth(false));
   }, []);
 
-  async function handleCheckout(plan: string) {
+  async function handleCheckout(tier: PricingTier) {
     if (!user) {
       window.location.href = "/register";
       return;
     }
 
-    setLoadingPlan(plan);
+    setLoadingPlan(tier.plan);
 
     try {
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productSlug: "prism", plan }),
+        body: JSON.stringify({ productSlug: "prism", plan: tier.plan }),
       });
 
       if (!res.ok) {
@@ -124,17 +131,37 @@ export function PricingSection() {
         key: razorpayKeyId,
         subscription_id: subscriptionId,
         name: "Lucent",
-        description: `PRism ${plan} Plan`,
-        handler: () => {
-          // Payment successful — redirect to dashboard
-          window.location.href = "/dashboard";
+        description: `PRism ${tier.plan} Plan`,
+        handler: async (response: RazorpayCheckoutResponse) => {
+          let verifyData: VerifyResponse | null = null;
+          try {
+            const verifyRes = await fetch("/api/billing/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(response),
+            });
+            if (verifyRes.ok) {
+              verifyData = await verifyRes.json();
+            } else {
+              const err = await verifyRes.json().catch(() => ({}));
+              console.error("Payment verification failed:", verifyRes.status, err);
+            }
+          } catch (err) {
+            console.error("Payment verification error:", err);
+          }
+          setSuccessModal({
+            open: true,
+            data: verifyData,
+            planName: tier.name,
+            planPrice: tier.price,
+          });
         },
         prefill: {
           name: user.name,
           email: user.email,
         },
         theme: {
-          color: "#10B981",
+          color: "#8b5cf6",
         },
       });
       rzp.open();
@@ -251,7 +278,7 @@ export function PricingSection() {
                   if (tier.plan === "FREE") {
                     window.location.href = user ? "/dashboard" : "/register";
                   } else {
-                    handleCheckout(tier.plan);
+                    handleCheckout(tier);
                   }
                 }}
               >
@@ -262,6 +289,16 @@ export function PricingSection() {
           );
         })}
       </div>
+
+      {successModal && (
+        <PaymentSuccessModal
+          open={successModal.open}
+          onClose={() => setSuccessModal(null)}
+          data={successModal.data}
+          planName={successModal.planName}
+          planPrice={successModal.planPrice}
+        />
+      )}
     </section>
   );
 }
@@ -288,6 +325,22 @@ function loadRazorpay(): Promise<RazorpayConstructor> {
   });
 }
 
+interface VerifyResponse {
+  productSlug: string;
+  plan: string;
+  status: string;
+  usageLimit: number;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  paymentId: string;
+}
+
+interface RazorpayCheckoutResponse {
+  razorpay_payment_id: string;
+  razorpay_subscription_id: string;
+  razorpay_signature: string;
+}
+
 interface RazorpayInstance {
   open: () => void;
 }
@@ -298,7 +351,7 @@ interface RazorpayConstructor {
     subscription_id: string;
     name: string;
     description: string;
-    handler: (response: unknown) => void;
+    handler: (response: RazorpayCheckoutResponse) => void;
     prefill?: { name?: string; email?: string };
     theme?: { color?: string };
   }): RazorpayInstance;

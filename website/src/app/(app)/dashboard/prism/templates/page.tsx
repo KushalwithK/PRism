@@ -15,6 +15,7 @@ import { useAuth } from "@/components/app/auth-provider";
 import {
   PLACEHOLDERS,
   SAMPLE_PLACEHOLDER_VALUES,
+  DEFAULT_TEMPLATE_NAME,
   renderTemplate,
 } from "@prism/shared";
 import {
@@ -57,7 +58,7 @@ export default function TemplatesPage() {
   const [showPreview, setShowPreview] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
-  const defaultTemplateId = user?.defaultTemplateId;
+  const [localDefaultId, setLocalDefaultId] = useState<string | null>(null);
 
   const fetchTemplates = useCallback(async () => {
     try {
@@ -79,6 +80,13 @@ export default function TemplatesPage() {
 
   const customTemplates = templates.filter((t) => !t.isPredefined);
   const predefinedTemplates = templates.filter((t) => t.isPredefined);
+
+  // Effective default: explicit user choice > fallback to "Standard" predefined
+  const explicitDefaultId = localDefaultId ?? user?.defaultTemplateId ?? null;
+  const effectiveDefaultId =
+    explicitDefaultId ??
+    predefinedTemplates.find((t) => t.name === DEFAULT_TEMPLATE_NAME)?.id ??
+    null;
 
   const openCreate = () => {
     setEditing({ name: "", description: "", body: "" });
@@ -180,8 +188,12 @@ export default function TemplatesPage() {
 
   const setDefault = async (id: string) => {
     try {
-      await fetch(`/api/templates/${id}/set-default`, { method: "PATCH" });
-      window.location.reload();
+      const res = await fetch(`/api/templates/${id}/set-default`, {
+        method: "PATCH",
+      });
+      if (res.ok) {
+        setLocalDefaultId(id);
+      }
     } catch {
       // handle error
     }
@@ -232,7 +244,7 @@ export default function TemplatesPage() {
                 <TemplateCard
                   key={tpl.id}
                   template={tpl}
-                  isDefault={tpl.id === defaultTemplateId}
+                  isDefault={tpl.id === effectiveDefaultId}
                   onEdit={() => openEdit(tpl)}
                   onDelete={() => deleteTemplate(tpl.id)}
                   onSetDefault={() => setDefault(tpl.id)}
@@ -251,7 +263,7 @@ export default function TemplatesPage() {
               <TemplateCard
                 key={tpl.id}
                 template={tpl}
-                isDefault={tpl.id === defaultTemplateId}
+                isDefault={tpl.id === effectiveDefaultId}
                 onSetDefault={() => setDefault(tpl.id)}
               />
             ))}

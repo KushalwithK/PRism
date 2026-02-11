@@ -128,6 +128,7 @@ export const API_PATHS = {
   HISTORY: '/api/history',
   USAGE: '/api/usage',
   BILLING_CHECKOUT: '/api/billing/checkout',
+  BILLING_VERIFY: '/api/billing/verify',
   BILLING_PORTAL: '/api/billing/portal',
   BILLING_WEBHOOK: '/api/billing/webhook',
   BILLING_SUBSCRIPTIONS: '/api/billing/subscriptions',

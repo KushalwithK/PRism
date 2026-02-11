@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LegalPage } from "@/components/marketing/legal-page";
+import { LegalPage, type LegalSection } from "@/components/marketing/legal-page";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -7,18 +7,23 @@ export const metadata: Metadata = {
     "Terms and conditions for using Lucent's products and services.",
 };
 
-export default function TermsOfServicePage() {
-  return (
-    <LegalPage title="Terms of Service" lastUpdated="February 10, 2026">
-      <h2>1. Acceptance of Terms</h2>
+const sections: LegalSection[] = [
+  {
+    id: "acceptance",
+    title: "Acceptance of Terms",
+    content: (
       <p>
         By accessing or using any Lucent services, including the PRism browser
         extension and web platform, you agree to be bound by these Terms of
         Service. If you do not agree to these terms, please do not use our
         services.
       </p>
-
-      <h2>2. Description of Service</h2>
+    ),
+  },
+  {
+    id: "description",
+    title: "Description of Service",
+    content: (
       <p>
         Lucent provides AI-powered developer tools. PRism is a browser extension
         and web dashboard that automatically generates pull request and merge
@@ -26,105 +31,205 @@ export default function TermsOfServicePage() {
         code diffs and generates structured descriptions based on your selected
         template.
       </p>
-
-      <h2>3. Account Registration</h2>
+    ),
+  },
+  {
+    id: "registration",
+    title: "Account Registration",
+    content: (
       <ul>
-        <li>You must provide accurate and complete information when creating an account</li>
+        <li>
+          You must provide accurate and complete information when creating an
+          account
+        </li>
         <li>Each person may only maintain one account</li>
-        <li>You are responsible for maintaining the security of your password and account</li>
-        <li>You must notify us immediately of any unauthorized access to your account</li>
+        <li>
+          You are responsible for maintaining the security of your password and
+          account
+        </li>
+        <li>
+          You must notify us immediately of any unauthorized access to your
+          account
+        </li>
       </ul>
-
-      <h2>4. Subscription Plans &amp; Billing</h2>
-      <p>PRism offers the following subscription plans:</p>
-      <ul>
-        <li><strong>Free:</strong> ₹0/month — 5 generations per month</li>
-        <li><strong>Pro:</strong> ₹249/month — 50 generations per month</li>
-        <li><strong>Max:</strong> ₹1,199/month — unlimited generations</li>
-      </ul>
-      <p>
-        Paid subscriptions are billed monthly and auto-renew via Razorpay. Prices
-        are in Indian Rupees (INR) and may be subject to applicable taxes. We
-        reserve the right to change pricing with at least 30 days&apos; notice to
-        existing subscribers.
-      </p>
-
-      <h2>5. Usage Limits</h2>
+    ),
+  },
+  {
+    id: "billing",
+    title: "Subscription Plans & Billing",
+    content: (
+      <>
+        <p>PRism offers the following subscription plans:</p>
+        <ul>
+          <li>
+            <strong>Free:</strong> ₹0/month — 5 generations per month
+          </li>
+          <li>
+            <strong>Pro:</strong> ₹249/month — 50 generations per month
+          </li>
+          <li>
+            <strong>Max:</strong> ₹1,199/month — unlimited generations
+          </li>
+        </ul>
+        <p>
+          Paid subscriptions are billed monthly and auto-renew via Razorpay.
+          Prices are in Indian Rupees (INR) and may be subject to applicable
+          taxes. We reserve the right to change pricing with at least 30
+          days&apos; notice to existing subscribers.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "usage-limits",
+    title: "Usage Limits",
+    content: (
       <p>
         Each plan includes a specific number of AI generations per month. Usage
         resets at the start of each billing period. Unused generations do not
         carry over. We reserve the right to enforce fair use policies to prevent
         abuse of the service.
       </p>
-
-      <h2>6. Acceptable Use</h2>
-      <p>You agree not to:</p>
-      <ul>
-        <li>Use automation, scripts, or bots to bypass usage limits</li>
-        <li>Reverse-engineer, decompile, or disassemble any part of the service</li>
-        <li>Scrape, crawl, or collect data from the service</li>
-        <li>Share your account credentials with others or allow others to access your account</li>
-        <li>Use the service for any illegal or unauthorized purpose</li>
-      </ul>
-
-      <h2>7. Intellectual Property</h2>
-      <p>
-        <strong>Your content:</strong> you retain full ownership of the PR/MR
-        descriptions and content generated through the service. You are free to
-        use, modify, and distribute your generated content without restriction.
-      </p>
-      <p>
-        <strong>Our platform:</strong> the Lucent platform, PRism extension,
-        branding, design, and underlying technology are owned by Lucent and
-        protected by applicable intellectual property laws.
-      </p>
-
-      <h2>8. AI-Generated Content Disclaimer</h2>
+    ),
+  },
+  {
+    id: "acceptable-use",
+    title: "Acceptable Use",
+    content: (
+      <>
+        <p>You agree not to:</p>
+        <ul>
+          <li>
+            Use automation, scripts, or bots to bypass usage limits
+          </li>
+          <li>
+            Reverse-engineer, decompile, or disassemble any part of the service
+          </li>
+          <li>Scrape, crawl, or collect data from the service</li>
+          <li>
+            Share your account credentials with others or allow others to access
+            your account
+          </li>
+          <li>Use the service for any illegal or unauthorized purpose</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: "intellectual-property",
+    title: "Intellectual Property",
+    content: (
+      <>
+        <p>
+          <strong>Your content:</strong> you retain full ownership of the PR/MR
+          descriptions and content generated through the service. You are free to
+          use, modify, and distribute your generated content without restriction.
+        </p>
+        <p>
+          <strong>Our platform:</strong> the Lucent platform, PRism extension,
+          branding, design, and underlying technology are owned by Lucent and
+          protected by applicable intellectual property laws.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "ai-disclaimer",
+    title: "AI-Generated Content Disclaimer",
+    content: (
       <p>
         Content generated by PRism is provided &quot;as-is&quot; and is intended
         to assist — not replace — your own judgment. You are solely responsible
         for reviewing all generated content before use. We do not guarantee the
         accuracy, completeness, or appropriateness of any AI-generated output.
       </p>
-
-      <h2>9. Limitation of Liability</h2>
-      <p>
-        The service is provided on an &quot;as-is&quot; and &quot;as-available&quot;
-        basis without warranties of any kind, either express or implied. To the
-        maximum extent permitted by law:
-      </p>
+    ),
+  },
+  {
+    id: "liability",
+    title: "Limitation of Liability",
+    content: (
+      <>
+        <p>
+          The service is provided on an &quot;as-is&quot; and
+          &quot;as-available&quot; basis without warranties of any kind, either
+          express or implied. To the maximum extent permitted by law:
+        </p>
+        <ul>
+          <li>
+            Lucent shall not be liable for any indirect, incidental, special,
+            consequential, or punitive damages
+          </li>
+          <li>
+            Our total liability for any claim arising from the service shall not
+            exceed the total fees you paid to us in the 12 months preceding the
+            claim
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: "termination",
+    title: "Termination",
+    content: (
       <ul>
-        <li>Lucent shall not be liable for any indirect, incidental, special, consequential, or punitive damages</li>
-        <li>Our total liability for any claim arising from the service shall not exceed the total fees you paid to us in the 12 months preceding the claim</li>
+        <li>
+          You may delete your account at any time by contacting us at{" "}
+          <a href="mailto:support@getlucent.dev">support@getlucent.dev</a>
+        </li>
+        <li>
+          We may suspend or terminate your account for violations of these
+          Terms, with reasonable notice when possible
+        </li>
+        <li>
+          Upon termination, your right to use the service ceases immediately
+        </li>
       </ul>
-
-      <h2>10. Termination</h2>
-      <ul>
-        <li>You may delete your account at any time by contacting us at <a href="mailto:support@getlucent.dev">support@getlucent.dev</a></li>
-        <li>We may suspend or terminate your account for violations of these Terms, with reasonable notice when possible</li>
-        <li>Upon termination, your right to use the service ceases immediately</li>
-      </ul>
-
-      <h2>11. Governing Law</h2>
+    ),
+  },
+  {
+    id: "governing-law",
+    title: "Governing Law",
+    content: (
       <p>
         These Terms shall be governed by and construed in accordance with the
         laws of India. Any disputes arising under these Terms shall be subject to
         the exclusive jurisdiction of the courts in India.
       </p>
-
-      <h2>12. Changes to Terms</h2>
+    ),
+  },
+  {
+    id: "changes",
+    title: "Changes to Terms",
+    content: (
       <p>
         We reserve the right to modify these Terms at any time. For material
         changes, we will provide at least 30 days&apos; notice via email or a
         prominent notice on our website. Your continued use of the service after
         such changes constitutes acceptance of the new Terms.
       </p>
-
-      <h2>13. Contact</h2>
+    ),
+  },
+  {
+    id: "contact",
+    title: "Contact",
+    content: (
       <p>
         If you have any questions about these Terms of Service, please contact us
         at <a href="mailto:support@getlucent.dev">support@getlucent.dev</a>.
       </p>
-    </LegalPage>
+    ),
+  },
+];
+
+export default function TermsOfServicePage() {
+  return (
+    <LegalPage
+      title="Terms of Service"
+      description="The terms and conditions that govern your use of Lucent's products and services."
+      lastUpdated="February 10, 2026"
+      sections={sections}
+    />
   );
 }

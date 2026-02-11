@@ -84,7 +84,7 @@ export default async function billingRoutes(fastify: FastifyInstance) {
       plan_id: productPlan.razorpayPlanId,
       total_count: 12,
       quantity: 1,
-      notes: { customer_id: customerId, user_id: user.id },
+      notes: { customer_id: customerId, user_id: user.id, plan: plan },
     } as Parameters<typeof rz.subscriptions.create>[0]);
 
     // Link the Razorpay subscription ID to the user's subscription record
@@ -115,6 +115,121 @@ export default async function billingRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // POST /api/billing/verify — verify payment after Razorpay checkout
+  fastify.post<{
+    Body: {
+      razorpay_payment_id: string;
+      razorpay_subscription_id: string;
+      razorpay_signature: string;
+    };
+  }>('/verify', {
+    preHandler: [fastify.authenticate],
+    schema: {
+      body: {
+        type: 'object',
+        required: ['razorpay_payment_id', 'razorpay_subscription_id', 'razorpay_signature'],
+        properties: {
+          razorpay_payment_id: { type: 'string' },
+          razorpay_subscription_id: { type: 'string' },
+          razorpay_signature: { type: 'string' },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const { razorpay_payment_id, razorpay_subscription_id, razorpay_signature } = request.body;
+    const rz = getRazorpay();
+
+    // Verify signature: HMAC-SHA256(payment_id + "|" + subscription_id, key_secret)
+    const expectedSignature = createHmac('sha256', config.razorpay.keySecret)
+      .update(`${razorpay_payment_id}|${razorpay_subscription_id}`)
+      .digest('hex');
+
+    if (razorpay_signature !== expectedSignature) {
+      fastify.log.warn({ razorpay_subscription_id }, 'Verify: invalid signature');
+      return reply.status(400).send({ error: 'Invalid payment signature' });
+    }
+
+    fastify.log.info({ razorpay_subscription_id, razorpay_payment_id }, 'Verify: signature valid');
+
+    // Fetch subscription from Razorpay API to get current status and plan
+    const rzSub = await rz.subscriptions.fetch(razorpay_subscription_id);
+    fastify.log.info({ rzStatus: rzSub.status, rzPlanId: rzSub.plan_id, rzNotes: rzSub.notes }, 'Verify: Razorpay subscription fetched');
+
+    // Not gating on status — signature verification above is the authorization check.
+    // Razorpay may still show "created" due to async charge processing.
+    fastify.log.info({ rzStatus: rzSub.status }, 'Verify: Razorpay subscription status (not gating)');
+
+    // Find local subscription by razorpaySubscriptionId
+    const existingSub = await fastify.prisma.subscription.findUnique({
+      where: { razorpaySubscriptionId: razorpay_subscription_id },
+    });
+
+    if (!existingSub) {
+      fastify.log.error({ razorpay_subscription_id }, 'Verify: no local subscription found');
+      return reply.status(404).send({ error: 'Subscription not found' });
+    }
+
+    fastify.log.info({ subId: existingSub.id, userId: existingSub.userId, productId: existingSub.productId }, 'Verify: local subscription found');
+
+    // Verify it belongs to the authenticated user
+    if (existingSub.userId !== request.userId) {
+      fastify.log.warn({ subUserId: existingSub.userId, requestUserId: request.userId }, 'Verify: user mismatch');
+      return reply.status(403).send({ error: 'Subscription does not belong to this user' });
+    }
+
+    // Look up ProductPlan by Razorpay plan ID to get correct plan/limits
+    let productPlan = await fastify.prisma.productPlan.findFirst({
+      where: { razorpayPlanId: rzSub.plan_id },
+    });
+
+    if (!productPlan && (rzSub as unknown as { notes?: Record<string, string> }).notes?.plan) {
+      const notes = (rzSub as unknown as { notes: Record<string, string> }).notes;
+      fastify.log.warn({ plan_id: rzSub.plan_id }, 'Verify: ProductPlan not found by razorpayPlanId, using notes fallback');
+      productPlan = await fastify.prisma.productPlan.findFirst({
+        where: {
+          productId: existingSub.productId,
+          plan: notes.plan as Plan,
+        },
+      });
+    }
+
+    if (!productPlan) {
+      fastify.log.error({ rzPlanId: rzSub.plan_id }, 'Verify: ProductPlan not found (all lookups failed)');
+      return reply.status(404).send({ error: 'Product plan not found' });
+    }
+
+    fastify.log.info({ productPlanId: productPlan.id, plan: productPlan.plan, usageLimit: productPlan.usageLimit }, 'Verify: ProductPlan resolved');
+
+    // Activate subscription (idempotent — same update as webhook)
+    const now = new Date();
+    const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const updated = await fastify.prisma.subscription.update({
+      where: { id: existingSub.id },
+      data: {
+        plan: productPlan.plan,
+        status: 'ACTIVE',
+        usageLimit: productPlan.usageLimit,
+        usageCount: 0,
+        razorpaySubscriptionId: razorpay_subscription_id,
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnd,
+      },
+      include: { product: true },
+    });
+
+    fastify.log.info({ subscriptionId: updated.id, plan: updated.plan }, 'Verify: subscription activated');
+
+    return reply.send({
+      productSlug: updated.product.slug,
+      plan: updated.plan,
+      status: updated.status,
+      usageLimit: updated.usageLimit,
+      currentPeriodStart: updated.currentPeriodStart.toISOString(),
+      currentPeriodEnd: updated.currentPeriodEnd.toISOString(),
+      paymentId: razorpay_payment_id,
+    });
+  });
+
   // POST /api/billing/webhook — handle Razorpay webhook events
   fastify.post('/webhook', {
     config: { rawBody: true },
@@ -124,9 +239,10 @@ export default async function billingRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'Missing signature' });
     }
 
-    const body = typeof request.body === 'string'
-      ? request.body
-      : JSON.stringify(request.body);
+    const body = (request as any).rawBody as string;
+    if (!body) {
+      return reply.status(400).send({ error: 'Missing request body' });
+    }
 
     // Verify webhook signature
     const expectedSignature = createHmac('sha256', config.razorpay.webhookSecret)
