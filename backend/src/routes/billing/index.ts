@@ -1,24 +1,9 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import Razorpay from 'razorpay';
 import { createHmac } from 'crypto';
 import { config } from '../../config.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
+import { getRazorpay, downgradeToFree } from '../../services/subscription-sync.js';
 import type { Plan, PlanFeature } from '@prism/shared';
-
-let razorpay: Razorpay | null = null;
-
-function getRazorpay(): Razorpay {
-  if (!razorpay) {
-    if (!config.razorpay.keyId || !config.razorpay.keySecret) {
-      throw new Error('Razorpay credentials not configured');
-    }
-    razorpay = new Razorpay({
-      key_id: config.razorpay.keyId,
-      key_secret: config.razorpay.keySecret,
-    });
-  }
-  return razorpay;
-}
 
 export default async function billingRoutes(fastify: FastifyInstance) {
   // GET /api/billing/plans — public endpoint for pricing data
@@ -189,7 +174,13 @@ export default async function billingRoutes(fastify: FastifyInstance) {
     fastify.log.info({ razorpay_subscription_id, razorpay_payment_id }, 'Verify: signature valid');
 
     // Fetch subscription from Razorpay API to get current status and plan
-    const rzSub = await rz.subscriptions.fetch(razorpay_subscription_id);
+    const rzSub = await rz.subscriptions.fetch(razorpay_subscription_id) as unknown as {
+      status: string;
+      plan_id: string;
+      notes?: Record<string, string>;
+      current_start?: number;
+      current_end?: number;
+    };
     fastify.log.info({ rzStatus: rzSub.status, rzPlanId: rzSub.plan_id, rzNotes: rzSub.notes }, 'Verify: Razorpay subscription fetched');
 
     // Not gating on status — signature verification above is the authorization check.
@@ -219,13 +210,12 @@ export default async function billingRoutes(fastify: FastifyInstance) {
       where: { razorpayPlanId: rzSub.plan_id },
     });
 
-    if (!productPlan && (rzSub as unknown as { notes?: Record<string, string> }).notes?.plan) {
-      const notes = (rzSub as unknown as { notes: Record<string, string> }).notes;
+    if (!productPlan && rzSub.notes?.plan) {
       fastify.log.warn({ plan_id: rzSub.plan_id }, 'Verify: ProductPlan not found by razorpayPlanId, using notes fallback');
       productPlan = await fastify.prisma.productPlan.findFirst({
         where: {
           productId: existingSub.productId,
-          plan: notes.plan as Plan,
+          plan: rzSub.notes.plan as Plan,
         },
       });
     }
@@ -237,9 +227,19 @@ export default async function billingRoutes(fastify: FastifyInstance) {
 
     fastify.log.info({ productPlanId: productPlan.id, plan: productPlan.plan, usageLimit: productPlan.usageLimit }, 'Verify: ProductPlan resolved');
 
+    // Use Razorpay's authoritative timestamps when available, fall back to now + 30d
+    let periodStart: Date;
+    let periodEnd: Date;
+    if (rzSub.current_start && rzSub.current_end) {
+      periodStart = new Date(rzSub.current_start * 1000);
+      periodEnd = new Date(rzSub.current_end * 1000);
+    } else {
+      const now = new Date();
+      periodStart = now;
+      periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    }
+
     // Activate subscription (idempotent — same update as webhook)
-    const now = new Date();
-    const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     const updated = await fastify.prisma.subscription.update({
       where: { id: existingSub.id },
       data: {
@@ -248,7 +248,7 @@ export default async function billingRoutes(fastify: FastifyInstance) {
         usageLimit: productPlan.usageLimit,
         usageCount: 0,
         razorpaySubscriptionId: razorpay_subscription_id,
-        currentPeriodStart: now,
+        currentPeriodStart: periodStart,
         currentPeriodEnd: periodEnd,
       },
       include: { product: true },
@@ -293,7 +293,16 @@ export default async function billingRoutes(fastify: FastifyInstance) {
     const event = JSON.parse(body) as {
       event: string;
       payload: {
-        subscription?: { entity: { id: string; plan_id: string; status: string; notes?: Record<string, string> } };
+        subscription?: {
+          entity: {
+            id: string;
+            plan_id: string;
+            status: string;
+            current_start?: number;
+            current_end?: number;
+            notes?: Record<string, string>;
+          };
+        };
         payment?: { entity: { id: string; subscription_id: string } };
       };
     };
@@ -333,7 +342,18 @@ export default async function billingRoutes(fastify: FastifyInstance) {
         }
 
         if (existingSub) {
-          const now = new Date();
+          // Use Razorpay's authoritative timestamps
+          let periodStart: Date;
+          let periodEnd: Date;
+          if (subEntity.current_start && subEntity.current_end) {
+            periodStart = new Date(subEntity.current_start * 1000);
+            periodEnd = new Date(subEntity.current_end * 1000);
+          } else {
+            const now = new Date();
+            periodStart = now;
+            periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          }
+
           await fastify.prisma.subscription.update({
             where: { id: existingSub.id },
             data: {
@@ -342,8 +362,8 @@ export default async function billingRoutes(fastify: FastifyInstance) {
               usageLimit: productPlan.usageLimit,
               usageCount: 0,
               razorpaySubscriptionId: subEntity.id,
-              currentPeriodStart: now,
-              currentPeriodEnd: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+              currentPeriodStart: periodStart,
+              currentPeriodEnd: periodEnd,
             },
           });
         } else {
@@ -353,7 +373,7 @@ export default async function billingRoutes(fastify: FastifyInstance) {
       }
 
       case 'subscription.charged': {
-        // Payment successful — reset usage for the period
+        // Payment successful — reset usage for the new period
         const subEntity = event.payload.subscription?.entity;
         if (!subEntity) break;
 
@@ -362,15 +382,34 @@ export default async function billingRoutes(fastify: FastifyInstance) {
         });
 
         if (sub) {
-          const now = new Date();
-          const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          // Use Razorpay's authoritative timestamps
+          let periodStart: Date;
+          let periodEnd: Date;
+          if (subEntity.current_start && subEntity.current_end) {
+            periodStart = new Date(subEntity.current_start * 1000);
+            periodEnd = new Date(subEntity.current_end * 1000);
+          } else {
+            const now = new Date();
+            periodStart = now;
+            periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          }
+
+          // Look up ProductPlan to refresh limits (plan may have changed)
+          const productPlan = await fastify.prisma.productPlan.findFirst({
+            where: { razorpayPlanId: subEntity.plan_id },
+          });
+
           await fastify.prisma.subscription.update({
             where: { id: sub.id },
             data: {
               usageCount: 0,
-              currentPeriodStart: now,
+              currentPeriodStart: periodStart,
               currentPeriodEnd: periodEnd,
               status: 'ACTIVE',
+              ...(productPlan ? {
+                plan: productPlan.plan,
+                usageLimit: productPlan.usageLimit,
+              } : {}),
             },
           });
         }
@@ -383,24 +422,45 @@ export default async function billingRoutes(fastify: FastifyInstance) {
 
         const sub = await fastify.prisma.subscription.findUnique({
           where: { razorpaySubscriptionId: subEntity.id },
-          include: { product: true },
         });
 
         if (sub) {
-          // Find the FREE plan limits for this product
-          const freePlan = await fastify.prisma.productPlan.findFirst({
-            where: { productId: sub.productId, plan: 'FREE' },
-          });
+          await downgradeToFree(fastify.prisma, sub);
+        }
+        break;
+      }
 
+      case 'subscription.halted': {
+        // Razorpay exhausted all payment retries
+        const subEntity = event.payload.subscription?.entity;
+        if (!subEntity) break;
+
+        const sub = await fastify.prisma.subscription.findUnique({
+          where: { razorpaySubscriptionId: subEntity.id },
+        });
+
+        if (sub) {
           await fastify.prisma.subscription.update({
             where: { id: sub.id },
-            data: {
-              plan: 'FREE',
-              status: 'CANCELED',
-              usageLimit: freePlan?.usageLimit ?? 5,
-              razorpaySubscriptionId: null,
-              cancelAtPeriodEnd: false,
-            },
+            data: { status: 'HALTED' },
+          });
+        }
+        break;
+      }
+
+      case 'subscription.pending': {
+        // Payment pending — Razorpay is retrying
+        const subEntity = event.payload.subscription?.entity;
+        if (!subEntity) break;
+
+        const sub = await fastify.prisma.subscription.findUnique({
+          where: { razorpaySubscriptionId: subEntity.id },
+        });
+
+        if (sub) {
+          await fastify.prisma.subscription.update({
+            where: { id: sub.id },
+            data: { status: 'PAST_DUE' },
           });
         }
         break;
@@ -426,6 +486,44 @@ export default async function billingRoutes(fastify: FastifyInstance) {
     }
 
     return reply.send({ received: true });
+  });
+
+  // POST /api/billing/update-payment — get info for Razorpay card change flow
+  fastify.post<{
+    Body: { productSlug: string };
+  }>('/update-payment', {
+    preHandler: [fastify.authenticate],
+    schema: {
+      body: {
+        type: 'object',
+        required: ['productSlug'],
+        properties: {
+          productSlug: { type: 'string' },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const { productSlug } = request.body;
+
+    const subscription = await fastify.prisma.subscription.findFirst({
+      where: {
+        userId: request.userId,
+        product: { slug: productSlug },
+      },
+    });
+
+    if (!subscription) {
+      throw new NotFoundError('Subscription not found');
+    }
+
+    if (!subscription.razorpaySubscriptionId) {
+      throw new ValidationError('No active paid subscription to update payment for');
+    }
+
+    return reply.send({
+      razorpaySubscriptionId: subscription.razorpaySubscriptionId,
+      razorpayKeyId: config.razorpay.keyId,
+    });
   });
 
   // GET /api/billing/subscriptions — list user's subscriptions

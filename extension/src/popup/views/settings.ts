@@ -32,6 +32,7 @@ async function loadProfile(container: HTMLElement) {
     const initials = getInitials(user.name);
     const prismSub = user.subscriptions.find((s) => s.productSlug === 'prism');
     const userPlan = prismSub?.plan ?? 'FREE';
+    const subStatus = prismSub?.status ?? 'ACTIVE';
     currentUserPlan = userPlan;
     const userUsageCount = prismSub?.usageCount ?? 0;
     const planLimit = prismSub?.usageLimit ?? 5;
@@ -39,7 +40,30 @@ async function loadProfile(container: HTMLElement) {
     const usageLimit = isUnlimited ? '&infin;' : String(planLimit);
     const usagePercent = isUnlimited ? 0 : Math.min((userUsageCount / planLimit) * 100, 100);
 
+    const isPastDue = subStatus === 'PAST_DUE';
+    const isHalted = subStatus === 'HALTED';
+
     container.innerHTML = `
+      ${isPastDue ? `
+        <div class="alert alert-warning" style="margin-bottom:8px;display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.3);border-radius:8px;font-size:12px;color:#ca8a04;">
+          <span style="font-size:14px;flex-shrink:0;">&#9888;</span>
+          <div>
+            <div style="font-weight:600;margin-bottom:2px;">Payment retry in progress</div>
+            <div style="color:var(--text-secondary);">Update your payment method to avoid losing access.</div>
+            <a href="#" id="btn-update-payment" style="color:#ca8a04;font-weight:600;text-decoration:underline;margin-top:4px;display:inline-block;">Update Payment</a>
+          </div>
+        </div>
+      ` : ''}
+      ${isHalted ? `
+        <div class="alert alert-error" style="margin-bottom:8px;display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;font-size:12px;color:#ef4444;">
+          <span style="font-size:14px;flex-shrink:0;">&#10006;</span>
+          <div>
+            <div style="font-weight:600;margin-bottom:2px;">Payment failed</div>
+            <div style="color:var(--text-secondary);">Your subscription will be downgraded if not resolved.</div>
+            <a href="#" id="btn-update-payment" style="color:#ef4444;font-weight:600;text-decoration:underline;margin-top:4px;display:inline-block;">Update Payment</a>
+          </div>
+        </div>
+      ` : ''}
       <div class="section-title">Account</div>
       <div class="card-static">
         <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
@@ -148,6 +172,24 @@ async function loadProfile(container: HTMLElement) {
         try {
           const res = await sendMessage<ExtensionResponse<{ url: string }>>({
             type: 'GET_UPGRADE_URL',
+          });
+          if (res.success && res.data?.url) {
+            chrome.tabs.create({ url: res.data.url });
+          }
+        } catch {
+          // Silently fail
+        }
+      });
+    }
+
+    // Update payment button (for PAST_DUE/HALTED)
+    const updatePaymentBtn = document.getElementById('btn-update-payment');
+    if (updatePaymentBtn) {
+      updatePaymentBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        try {
+          const res = await sendMessage<ExtensionResponse<{ url: string }>>({
+            type: 'GET_PAYMENT_UPDATE_URL',
           });
           if (res.success && res.data?.url) {
             chrome.tabs.create({ url: res.data.url });

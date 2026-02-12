@@ -19,6 +19,8 @@ import {
   TrendingUp,
   Crown,
   Gauge,
+  AlertTriangle,
+  XCircle,
 } from "lucide-react";
 import {
   AreaChart,
@@ -87,6 +89,9 @@ export default function PrismDashboardPage() {
   }
 
   const sub = user.subscriptions.find((s) => s.productSlug === "prism");
+  const isPastDue = sub?.status === "PAST_DUE";
+  const isHalted = sub?.status === "HALTED";
+  const hasPaymentIssue = isPastDue || isHalted;
   const isUnlimited = sub?.usageLimit === -1;
   const percentage =
     sub && !isUnlimited
@@ -127,7 +132,7 @@ export default function PrismDashboardPage() {
         {sub && (
           <div className="grid gap-4 md:grid-cols-3">
             {/* Plan Card */}
-            <Card>
+            <Card className={isHalted ? "border-destructive/50" : isPastDue ? "border-amber-500/50" : undefined}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -135,24 +140,52 @@ export default function PrismDashboardPage() {
                   </div>
                   <Badge
                     variant={
-                      sub.status === "ACTIVE" ? "default" : "destructive"
+                      sub.status === "ACTIVE"
+                        ? "default"
+                        : sub.status === "PAST_DUE"
+                          ? "secondary"
+                          : "destructive"
                     }
                     className="text-[10px]"
                   >
-                    {sub.status}
+                    {sub.status === "PAST_DUE"
+                      ? "PAST DUE"
+                      : sub.status === "HALTED"
+                        ? "PAYMENT FAILED"
+                        : sub.status}
                   </Badge>
                 </div>
+                {isPastDue && (
+                  <div className="flex items-start gap-2 rounded-md bg-amber-500/5 border border-amber-500/20 p-2 mb-3 text-xs">
+                    <AlertTriangle size={12} className="mt-0.5 shrink-0 text-amber-500" />
+                    <span className="text-muted-foreground">Payment retry in progress</span>
+                  </div>
+                )}
+                {isHalted && (
+                  <div className="flex items-start gap-2 rounded-md bg-destructive/5 border border-destructive/20 p-2 mb-3 text-xs">
+                    <XCircle size={12} className="mt-0.5 shrink-0 text-destructive" />
+                    <span className="text-muted-foreground">Payment failed — update payment method</span>
+                  </div>
+                )}
                 <p className="text-sm text-muted-foreground">Current Plan</p>
                 <p className="text-2xl font-bold mt-0.5">{sub.plan}</p>
-                {sub.plan === "FREE" && (
+                {hasPaymentIssue && sub.plan !== "FREE" ? (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="w-full mt-4"
+                    asChild
+                  >
+                    <Link href="/dashboard/billing">Update Payment</Link>
+                  </Button>
+                ) : sub.plan === "FREE" ? (
                   <Button size="sm" className="w-full mt-4" asChild>
                     <Link href="/products/prism/pricing">
                       <TrendingUp size={14} className="mr-1.5" />
                       Upgrade Plan
                     </Link>
                   </Button>
-                )}
-                {sub.plan !== "FREE" && (
+                ) : (
                   <Button
                     size="sm"
                     variant="outline"

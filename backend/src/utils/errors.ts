@@ -49,3 +49,10 @@ export class ValidationError extends AppError {
     this.name = 'ValidationError';
   }
 }
+
+export class SubscriptionBlockedError extends AppError {
+  constructor(message = 'Subscription blocked — payment required to continue') {
+    super(403, message);
+    this.name = 'SubscriptionBlockedError';
+  }
+}

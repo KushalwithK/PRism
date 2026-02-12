@@ -152,6 +152,13 @@ async function handleMessage(message: ExtensionMessage): Promise<ExtensionRespon
       return { success: true, data: { url } };
     }
 
+    case 'GET_PAYMENT_UPDATE_URL': {
+      const refreshToken = await getStorageItem<string>(STORAGE_KEYS.REFRESH_TOKEN);
+      if (!refreshToken) return { success: false, error: 'Not authenticated' };
+      const url = `${WEBSITE_URL}/api/auth/token-login?token=${encodeURIComponent(refreshToken)}&redirect=${encodeURIComponent('/dashboard/billing')}`;
+      return { success: true, data: { url } };
+    }
+
     default:
       return { success: false, error: `Unknown message type: ${message.type}` };
   }
