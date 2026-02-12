@@ -59,6 +59,13 @@ export const config = {
     webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || '',
   },
 
+  subscription: {
+    gracePeriodMs: 2 * 60 * 60 * 1000,       // 2h — webhook delivery buffer
+    syncIntervalMs: 60 * 60 * 1000,           // 1h — cron frequency
+    syncCheckThresholdMs: 3 * 60 * 60 * 1000, // 3h — how far past expiry before cron checks
+    haltedDowngradeDays: 7,                    // Days before HALTED auto-downgrades to FREE
+  },
+
   rateLimit: {
     global: { max: 100, timeWindow: '1 minute' },
     auth: { max: 10, timeWindow: '1 minute' },

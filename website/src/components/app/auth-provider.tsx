@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -13,11 +14,13 @@ import type { UserProfile } from "@prism/shared";
 interface AuthContextValue {
   user: UserProfile | null;
   loading: boolean;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
   user: null,
   loading: true,
+  refreshProfile: async () => {},
 });
 
 export function useAuth() {
@@ -28,6 +31,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const refreshProfile = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/profile");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          setUser(data.user);
+        }
+      }
+    } catch {
+      // Best-effort refresh
+    }
+  }, []);
 
   useEffect(() => {
     async function loadProfile() {
@@ -54,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, loading, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

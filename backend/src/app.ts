@@ -16,6 +16,7 @@ import generateRoutes from './routes/generate/index.js';
 import historyRoutes from './routes/history/index.js';
 import usageRoutes from './routes/usage/index.js';
 import billingRoutes from './routes/billing/index.js';
+import { startSubscriptionSyncJob, stopSubscriptionSyncJob } from './jobs/subscription-sync-job.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -47,6 +48,15 @@ export async function buildApp() {
 
   // Health check
   app.get('/health', async () => ({ status: 'ok' }));
+
+  // Subscription sync cron job
+  app.addHook('onReady', () => {
+    startSubscriptionSyncJob(app.prisma, app.log);
+  });
+
+  app.addHook('onClose', () => {
+    stopSubscriptionSyncJob(app.log);
+  });
 
   return app;
 }

@@ -463,6 +463,7 @@ async function renderPreGenerate(ctx: ModalContext, errorMsgOrCache?: string | P
 
   const prismSub = user.subscriptions.find((s) => s.productSlug === 'prism');
   const userPlan = prismSub?.plan ?? 'FREE';
+  const subStatus = prismSub?.status ?? 'ACTIVE';
 
   const badge = document.createElement('span');
   if (userPlan === 'MAX') {
@@ -511,6 +512,29 @@ async function renderPreGenerate(ctx: ModalContext, errorMsgOrCache?: string | P
   userBar.appendChild(avatar);
   userBar.appendChild(userInfo);
   ctx.body.appendChild(userBar);
+
+  // Subscription status banners
+  if (subStatus === 'PAST_DUE') {
+    const banner = document.createElement('div');
+    banner.style.cssText = `
+      display:flex;align-items:center;gap:8px;
+      padding:8px 14px;background:rgba(234,179,8,0.08);
+      border:1px solid rgba(234,179,8,0.25);border-radius:8px;
+      margin-bottom:12px;font-size:12px;color:#ca8a04;
+    `;
+    banner.innerHTML = `<span style="flex-shrink:0;">&#9888;</span><span>Payment retry in progress. Update your payment method to avoid losing access.</span>`;
+    ctx.body.appendChild(banner);
+  } else if (subStatus === 'HALTED') {
+    const banner = document.createElement('div');
+    banner.style.cssText = `
+      display:flex;align-items:center;gap:8px;
+      padding:8px 14px;background:${COLORS.errorBg};
+      border:1px solid ${COLORS.errorBorder};border-radius:8px;
+      margin-bottom:12px;font-size:12px;color:${COLORS.error};
+    `;
+    banner.innerHTML = `<span style="flex-shrink:0;">&#10006;</span><span>Payment failed. Your subscription will be downgraded if not resolved.</span>`;
+    ctx.body.appendChild(banner);
+  }
 
   // Error message (if retrying after error)
   if (errorMsg) {

@@ -2,7 +2,7 @@
 
 export type Plan = 'FREE' | 'PRO' | 'MAX';
 
-export type SubscriptionStatus = 'ACTIVE' | 'CANCELED' | 'PAST_DUE' | 'TRIALING';
+export type SubscriptionStatus = 'ACTIVE' | 'CANCELED' | 'PAST_DUE' | 'TRIALING' | 'HALTED';
 
 export interface ProductSubscription {
   productSlug: string;
@@ -188,7 +188,8 @@ export type MessageType =
   | 'CREATE_TEMPLATE'
   | 'UPDATE_TEMPLATE'
   | 'DELETE_TEMPLATE'
-  | 'GET_UPGRADE_URL';
+  | 'GET_UPGRADE_URL'
+  | 'GET_PAYMENT_UPDATE_URL';
 
 export interface ExtensionMessage {
   type: MessageType;
